@@ -15,12 +15,13 @@ export, import in CSP — without leaving the BeeRef look and feel.
 
 ### Already in BeeRef (not rebuilt)
 
-Per-image grayscale view, flip, and a color-gamut view (`widgets/color_gamut.py`).
+Per-image grayscale view, flip, a color-gamut view (`widgets/color_gamut.py`) and **Sample
+Color** (`S`), which copies the hex of the pixel under the cursor to the clipboard.
 
 ### Out of scope (later, if ever)
 
-Screen-wide color picking (needs the Wayland color-picker portal), `.cls` export, copying hex to
-the clipboard, Flatpak packaging, upstreaming.
+Screen-wide color picking (needs the Wayland color-picker portal), `.cls` export, editing a
+swatch's color by hand, Flatpak packaging, upstreaming.
 
 ## User-facing behavior
 
@@ -41,6 +42,19 @@ state persists across sessions (app settings).
 
 A board can have zero, one or many palettes; none is created until the user asks for one or
 auto-extract fires.
+
+### Swatch inspector
+
+Below the palette list, a read-only inspector in the spirit of Gcolor3 shows the selected swatch:
+a hue ring with a saturation/value triangle marking the color, a large preview, HSV and RGB
+values, the hex code, and a **Copy hex** button. Nothing is editable there: a swatch's color only
+changes by moving its sample point, so every color stays tied to a real pixel.
+
+### Composing palettes
+
+A palette's points may sit on different images: auto-extract fills it from one image, and the
+**+** swatch adds points from any image — e.g. an 8-color "Magma" palette pulled from a lava
+photo, or a mood palette composed by hand across several references.
 
 ### Sample points on the canvas
 
@@ -121,6 +135,7 @@ New modules, each with one job:
 | `beeref/palette/commands.py` | Undoable commands: add/move/remove point, extract, create/rename/delete/reorder palette. |
 | `beeref/palette/marker.py` | Canvas item for one sample point (constant size, draggable). |
 | `beeref/widgets/palette_panel.py` | Side panel, swatches, collapse chevron. |
+| `beeref/widgets/color_inspector.py` | Read-only hue ring/triangle, values, Copy hex. |
 
 Minimal changes to existing code: `scene.py` / `view.py` (click-to-extract and pick mode),
 `fileio/schema.py` + `fileio/sql.py` (tables, migration, read/write), `actions/actions.py` +
