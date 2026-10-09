@@ -4,7 +4,7 @@ APPLICATION_ID = 2060242126
 
 PALETTE_SCHEMA = [
     """
-    CREATE TABLE palettes (
+    CREATE TABLE IF NOT EXISTS palettes (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         position INTEGER NOT NULL,
@@ -14,7 +14,7 @@ PALETTE_SCHEMA = [
     )
     """,
     """
-    CREATE TABLE palette_points (
+    CREATE TABLE IF NOT EXISTS palette_points (
         id INTEGER PRIMARY KEY,
         palette_id INTEGER NOT NULL
           REFERENCES palettes (id) ON DELETE CASCADE,
@@ -28,7 +28,7 @@ PALETTE_SCHEMA = [
     )
     """,
     """
-    CREATE TABLE palette_meta (
+    CREATE TABLE IF NOT EXISTS palette_meta (
         key TEXT PRIMARY KEY,
         value TEXT
     )

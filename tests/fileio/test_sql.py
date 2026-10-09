@@ -676,3 +676,19 @@ def test_sqliteio_read_raises_error_when_file_empty(view, tmpfile):
 
     # should not create a file on reading!
     assert os.path.isfile(tmpfile) is False
+
+
+def test_migrate_v2_file_that_already_has_palette_tables(tmpfile):
+    # A file stamped version 2 but already holding palette tables must
+    # open and keep its palettes instead of failing the migration.
+    io = SQLiteIO(tmpfile, MagicMock(), create_new=True)
+    io.create_schema_on_new()
+    io.ex("INSERT INTO palettes (name, position) VALUES ('Magma', 0)")
+    io.ex('PRAGMA user_version=2')
+    io.connection.commit()
+    del io
+    with patch('beeref.fileio.sql.logger.exception') as log_mock:
+        io = SQLiteIO(tmpfile, MagicMock(), readonly=True)
+        assert io.fetchone('PRAGMA user_version')[0] == schema.USER_VERSION
+    log_mock.assert_not_called()
+    assert io.fetchall('SELECT name FROM palettes') == [('Magma',)]
