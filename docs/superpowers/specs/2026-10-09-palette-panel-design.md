@@ -139,7 +139,7 @@ New modules, each with one job:
 | `beeref/palette/model.py` | `Palette`, `SamplePoint`; sampling a color from an image. No UI. |
 | `beeref/palette/extract.py` | `extract()` — pure function. |
 | `beeref/palette/aco.py` | `write_aco()` — pure function. |
-| `beeref/palette/commands.py` | Undoable commands: add/move/remove point, extract, create/rename/delete/reorder palette. |
+| `beeref/palette/commands.py` | Undoable commands: add/move/remove/reorder point, extract, create/rename/delete palette. |
 | `beeref/palette/overlay.py` | Draws the active palette's points over the view; hit-testing. |
 | `beeref/palette/controller.py` | User-level operations (new, extract, regenerate, pick, export) wired to the undo stack. |
 | `beeref/widgets/palette_panel.py` | Side panel, swatches, collapse chevron. |
