@@ -27,6 +27,7 @@ from beeref.widgets import (  # noqa: F401
     welcome_overlay,
     color_gamut,
     palette_panel,
+    color_inspector,
 )
 
 

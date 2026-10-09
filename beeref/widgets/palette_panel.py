@@ -19,6 +19,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt
 
 from beeref import constants
+from beeref.widgets.color_inspector import ColorInspector
 
 
 def _highlight():
@@ -254,6 +255,9 @@ class PalettePanel(QtWidgets.QWidget):
         self.layout_.addWidget(self.new_button)
         self.layout_.addWidget(scroll, 1)
 
+        self.inspector = ColorInspector()
+        self.layout_.addWidget(self.inspector)
+
         controller.store.changed.connect(self.on_store_changed)
         self.on_store_changed()
 
@@ -273,6 +277,8 @@ class PalettePanel(QtWidgets.QWidget):
             self.auto_checkbox.blockSignals(True)
             self.auto_checkbox.setChecked(store.auto_extract)
             self.auto_checkbox.blockSignals(False)
+        point = store.selected_point
+        self.inspector.set_color(point.color if point is not None else None)
 
 
 class PaletteSidebar(QtWidgets.QWidget):
