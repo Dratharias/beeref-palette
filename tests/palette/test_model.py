@@ -90,3 +90,12 @@ def test_store_clear(qtbot):
     store.clear()
     assert store.palettes == [] and store.active is None
     assert store.pending is None and not store.auto_extract
+
+
+def test_point_on_deleted_item_is_not_available(view):
+    from PyQt6 import sip
+    item = image_item(view)
+    point = SamplePoint(item, 0.5, 0.5)
+    view.scene.removeItem(item)
+    sip.delete(item)
+    assert not point.is_available

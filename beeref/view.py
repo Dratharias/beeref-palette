@@ -418,6 +418,16 @@ class BeeGraphicsView(MainControlsMixin,
             pos,
             self.scene.sample_color_at(self.mapToScene(pos)))
 
+    def on_action_toggle_palette_panel(self):
+        if self.palette_sidebar is not None:
+            self.palette_sidebar.toggle_visible()
+
+    def on_action_palette_new(self):
+        self.palette_controller.new_palette()
+
+    def on_action_palette_add_point(self):
+        self.enter_pick_point_mode()
+
     def enter_pick_point_mode(self):
         self.cancel_active_modes()
         logger.debug('Entering pick color point mode')

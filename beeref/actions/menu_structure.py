@@ -65,6 +65,8 @@ menu_structure = [
             'show_titlebar',
             MENU_SEPARATOR,
             'move_window',
+            MENU_SEPARATOR,
+            'toggle_palette_panel',
         ],
     },
     {
@@ -113,6 +115,13 @@ menu_structure = [
             MENU_SEPARATOR,
             'show_color_gamut',
             'sample_color',
+        ],
+    },
+    {
+        'menu': '&Palette',
+        'items': [
+            'palette_new',
+            'palette_add_point',
         ],
     },
     {

@@ -28,6 +28,7 @@ from beeref.assets import BeeAssets
 from beeref.config import CommandlineArgs, BeeSettings, logfile_name
 from beeref.utils import create_palette_from_dict
 from beeref.view import BeeGraphicsView
+from beeref.widgets.palette_panel import PaletteSidebar
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,16 @@ class BeeRefMainWindow(QtWidgets.QMainWindow):
         else:
             if not self.restoreGeometry(geom):
                 self.resize(default_window_size)
-        self.setCentralWidget(self.view)
+        self.palette_sidebar = PaletteSidebar(
+            self.view.palette_controller, self.view.settings)
+        self.view.palette_sidebar = self.palette_sidebar
+        central = QtWidgets.QWidget(self)
+        layout = QtWidgets.QHBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self.view, 1)
+        layout.addWidget(self.palette_sidebar)
+        self.setCentralWidget(central)
         self.show()
 
     def closeEvent(self, event):

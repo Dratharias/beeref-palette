@@ -447,4 +447,23 @@ actions = ActionList([
         text='&Open Settings Folder',
         callback='on_action_open_settings_dir',
     ),
+    Action(
+        id='toggle_palette_panel',
+        text='&Palette Panel',
+        shortcuts=['P'],
+        callback='on_action_toggle_palette_panel',
+    ),
+    Action(
+        id='palette_new',
+        text='&New Palette',
+        shortcuts=['Shift+P'],
+        callback='on_action_palette_new',
+    ),
+    Action(
+        id='palette_add_point',
+        text='&Add Color Point',
+        shortcuts=['A'],
+        callback='on_action_palette_add_point',
+        group='active_when_items_in_scene',
+    ),
 ])

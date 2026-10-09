@@ -15,7 +15,7 @@
 
 """Palettes, sample points and the per-board palette store."""
 
-from PyQt6 import QtCore, QtGui
+from PyQt6 import QtCore, QtGui, sip
 
 
 def sample_color(image, x, y):
@@ -64,7 +64,8 @@ class SamplePoint:
 
     @property
     def is_available(self):
-        return self.item is not None and self.item.scene() is not None
+        return (self.item is not None and not sip.isdeleted(self.item)
+                and self.item.scene() is not None)
 
     def pixel_pos(self):
         size = self.item.pixmap().size()
