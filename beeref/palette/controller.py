@@ -15,6 +15,8 @@
 
 """User-level palette operations, wired to the undo stack."""
 
+import logging
+import os
 import os.path
 
 from beeref.items import BeeErrorItem
@@ -22,6 +24,9 @@ from beeref.palette import commands
 from beeref.palette.aco import write_aco
 from beeref.palette.extract import extract
 from beeref.palette.model import Palette, SamplePoint, item_image
+
+
+logger = logging.getLogger(__name__)
 
 
 class PaletteController:
@@ -146,6 +151,14 @@ class PaletteController:
         board = (os.path.splitext(os.path.basename(board))[0]
                  if board else 'Untitled')
         return f'{board} - {palette.name}.aco'
+
+    def default_export_path(self, palette):
+        folder = self.settings.valueOrDefault('Save/palette_dir')
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except OSError as e:
+            logger.warning(f'Could not create {folder}: {e}')
+        return os.path.join(folder, self.default_export_name(palette))
 
     def export(self, palette, path):
         write_aco(path, palette.colors())

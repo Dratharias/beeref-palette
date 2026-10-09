@@ -1675,3 +1675,30 @@ def test_drop_when_img(view, imgfilename3x3):
     view.dropEvent(event)
     assert len(view.scene.items()) == 1
     assert view.scene.items()[0].isSelected() is True
+
+
+@patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
+       return_value=(None, None))
+def test_on_action_save_as_new_board_starts_in_board_dir(
+        dialog_mock, settings, view):
+    settings.setValue('Save/board_dir', '/boards')
+    view.on_action_save_as()
+    assert dialog_mock.call_args.kwargs['directory'] == '/boards'
+
+
+@patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
+       return_value=(None, None))
+def test_on_action_save_as_existing_board_starts_in_its_dir(
+        dialog_mock, settings, view):
+    settings.setValue('Save/board_dir', '/boards')
+    view.filename = '/elsewhere/magma.bee'
+    view.on_action_save_as()
+    assert dialog_mock.call_args.kwargs['directory'] == '/elsewhere'
+
+
+@patch('PyQt6.QtWidgets.QFileDialog.getOpenFileName',
+       return_value=(None, None))
+def test_on_action_open_starts_in_board_dir(dialog_mock, settings, view):
+    settings.setValue('Save/board_dir', '/boards')
+    view.on_action_open()
+    assert dialog_mock.call_args.kwargs['directory'] == '/boards'

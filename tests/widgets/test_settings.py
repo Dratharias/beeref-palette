@@ -4,8 +4,10 @@ from PyQt6 import QtWidgets
 
 from beeref.widgets.settings import (
     ArrangeGapWidget,
+    BoardDirWidget,
     ConfirmCloseUnsavedWidget,
     ImageStorageFormatWidget,
+    PaletteDirWidget,
     SettingsDialog,
 )
 
@@ -131,3 +133,35 @@ def test_settings_dialog_on_restore_defaults(msg_mock, settings, view):
     assert settings.valueOrDefault('Items/image_storage_format') == 'best'
     assert settings.valueOrDefault('Items/arrange_gap') == 0
     assert settings.valueOrDefault('Save/confirm_close_unsaved') is True
+
+
+def test_board_dir_initialises_input_from_settings(settings, view):
+    settings.setValue('Save/board_dir', '/boards')
+    widget = BoardDirWidget()
+    assert widget.input.text() == '/boards'
+
+
+def test_board_dir_saves_change(settings, view):
+    widget = BoardDirWidget()
+    widget.input.setText('/boards')
+    widget.input.editingFinished.emit()
+    assert settings.valueOrDefault('Save/board_dir') == '/boards'
+    assert widget.title() == 'Board folder: ✎'
+
+
+@patch('PyQt6.QtWidgets.QFileDialog.getExistingDirectory',
+       return_value='/palettes')
+def test_palette_dir_browse_saves_change(dialog_mock, settings, view):
+    widget = PaletteDirWidget()
+    widget.browse_button.click()
+    assert widget.input.text() == '/palettes'
+    assert settings.valueOrDefault('Save/palette_dir') == '/palettes'
+
+
+def test_palette_dir_on_restore_defaults(settings, view):
+    widget = PaletteDirWidget()
+    settings.setValue('Save/palette_dir', '/palettes')
+    settings.remove('Save/palette_dir')
+    widget.on_restore_defaults()
+    assert widget.input.text() == settings.valueOrDefault('Save/palette_dir')
+    assert widget.title() == 'Palette export folder:'

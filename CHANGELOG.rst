@@ -3,6 +3,8 @@
 
 * Fork: BeeRef Palette — palette panel, distinct-color extraction,
   sample points, color inspector, .aco export, .bee schema v3.
+* Settings > Folders: default folder for boards (Open, Save As) and
+  for .aco exports; both default to the Documents folder.
 
 0.3.4-dev (unreleased)
 ======================

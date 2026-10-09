@@ -482,6 +482,7 @@ class BeeGraphicsView(MainControlsMixin,
         filename, f = QtWidgets.QFileDialog.getOpenFileName(
             parent=self,
             caption='Open file',
+            directory=self.settings.valueOrDefault('Save/board_dir'),
             filter=f'{constants.APPNAME} File (*.bee)')
         if filename:
             filename = os.path.normpath(filename)
@@ -513,7 +514,8 @@ class BeeGraphicsView(MainControlsMixin,
 
     def on_action_save_as(self):
         self.cancel_active_modes()
-        directory = os.path.dirname(self.filename) if self.filename else None
+        directory = (os.path.dirname(self.filename) if self.filename
+                     else self.settings.valueOrDefault('Save/board_dir'))
         filename, f = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
             caption='Save file',

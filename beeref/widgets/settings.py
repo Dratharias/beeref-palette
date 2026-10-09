@@ -133,6 +133,35 @@ class SingleCheckboxGroup(GroupBase):
         return value == Qt.CheckState.Checked
 
 
+class DirectoryGroup(GroupBase):
+
+    def __init__(self):
+        super().__init__()
+        self.input = QtWidgets.QLineEdit()
+        self.set_value(self.settings.valueOrDefault(self.KEY))
+        self.input.editingFinished.connect(
+            lambda: self.on_value_changed(self.input.text()))
+        self.browse_button = QtWidgets.QPushButton('&Browse…')
+        self.browse_button.setAutoDefault(False)
+        self.browse_button.clicked.connect(self.on_browse)
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(self.input)
+        row.addWidget(self.browse_button)
+        self.layout.addLayout(row)
+        self.layout.addStretch(100)
+        self.ignore_value_changed = False
+
+    def set_value(self, value):
+        self.input.setText(value)
+
+    def on_browse(self):
+        directory = QtWidgets.QFileDialog.getExistingDirectory(
+            self, self.TITLE, self.input.text())
+        if directory:
+            self.set_value(directory)
+            self.on_value_changed(directory)
+
+
 class ArrangeDefaultWidget(RadioGroup):
     TITLE = 'Default Arrange Method:'
     HELPTEXT = ('How images are arranged when inserted in batch')
@@ -186,6 +215,18 @@ class ConfirmCloseUnsavedWidget(SingleCheckboxGroup):
     KEY = 'Save/confirm_close_unsaved'
 
 
+class BoardDirWidget(DirectoryGroup):
+    TITLE = 'Board folder:'
+    HELPTEXT = 'Where Open and Save As start for a new board.'
+    KEY = 'Save/board_dir'
+
+
+class PaletteDirWidget(DirectoryGroup):
+    TITLE = 'Palette export folder:'
+    HELPTEXT = 'Where Export .aco saves palettes. Created if missing.'
+    KEY = 'Save/palette_dir'
+
+
 class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent):
         super().__init__(parent)
@@ -208,6 +249,15 @@ class SettingsDialog(QtWidgets.QDialog):
         items_layout.addWidget(ArrangeGapWidget(), 1, 0)
         items_layout.addWidget(ArrangeDefaultWidget(), 1, 1)
         tabs.addTab(items, '&Images && Items')
+
+        # Folders
+        folders = QtWidgets.QWidget()
+        folders_layout = QtWidgets.QVBoxLayout()
+        folders.setLayout(folders_layout)
+        folders_layout.addWidget(BoardDirWidget())
+        folders_layout.addWidget(PaletteDirWidget())
+        folders_layout.addStretch(100)
+        tabs.addTab(folders, '&Folders')
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)

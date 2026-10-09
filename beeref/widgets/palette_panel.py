@@ -186,7 +186,7 @@ class PaletteRow(QtWidgets.QFrame):
     def export(self):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, 'Export palette',
-            self.controller.default_export_name(self.palette),
+            self.controller.default_export_path(self.palette),
             'Photoshop swatches (*.aco)')
         if not path:
             return

@@ -129,3 +129,16 @@ def test_regenerate_disabled_without_source(main_window):
     row = sidebar(main_window).panel.rows[0]
     row.menu_button.menu().aboutToShow.emit()
     assert not row.regenerate_action.isEnabled()
+
+
+def test_export_starts_in_palette_dir(main_window, settings, tmpdir):
+    target = tmpdir.join('Palettes')
+    settings.setValue('Save/palette_dir', str(target))
+    extracted(main_window)
+    row = sidebar(main_window).panel.rows[0]
+    with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
+               return_value=('', '')) as dialog:
+        row.export()
+    assert dialog.call_args.args[2] == str(target.join(
+        'Untitled - Palette 1.aco'))
+    assert target.check(dir=True)

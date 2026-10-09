@@ -166,3 +166,17 @@ def test_settings_recent_files_update_respects_max_num(settings):
     assert len(recent) == 10
     assert recent[0] == os.path.abspath('14.bee')
     assert recent[-1] == os.path.abspath('5.bee')
+
+
+def test_folder_settings_default_to_documents(settings):
+    from PyQt6.QtCore import QStandardPaths
+    docs = QStandardPaths.writableLocation(
+        QStandardPaths.StandardLocation.DocumentsLocation)
+    assert settings.valueOrDefault('Save/board_dir') == docs
+    assert settings.valueOrDefault('Save/palette_dir') == docs
+
+
+def test_folder_settings_expand_home(settings):
+    settings.setValue('Save/board_dir', '~/Art')
+    assert settings.valueOrDefault('Save/board_dir') == os.path.join(
+        os.path.expanduser('~'), 'Art')

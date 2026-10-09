@@ -110,6 +110,15 @@ class BeeSettingsEvents(QtCore.QObject):
 settings_events = BeeSettingsEvents()
 
 
+def _documents_dir():
+    return QtCore.QStandardPaths.writableLocation(
+        QtCore.QStandardPaths.StandardLocation.DocumentsLocation)
+
+
+def _folder(value):
+    return os.path.normpath(os.path.expanduser(str(value)))
+
+
 class BeeSettings(QtCore.QSettings):
 
     FIELDS = {
@@ -117,6 +126,16 @@ class BeeSettings(QtCore.QSettings):
             'default': 6,
             'cast': int,
             'validate': lambda x: 3 <= x <= 12,
+        },
+        'Save/board_dir': {
+            'default': _documents_dir(),
+            'cast': _folder,
+            'validate': bool,
+        },
+        'Save/palette_dir': {
+            'default': _documents_dir(),
+            'cast': _folder,
+            'validate': bool,
         },
         'Save/confirm_close_unsaved': {
             'default': True,
