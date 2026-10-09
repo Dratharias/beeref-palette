@@ -1,3 +1,24 @@
+BeeRef Palette
+==============
+
+A private fork of `BeeRef <https://github.com/rbreu/beeref>`_ that builds
+color palettes from reference images for painting in Clip Studio Paint.
+
+- Palette panel (``P``), collapsible with its chevron.
+- Auto-extract on click: distinct dominant colors (3–12) as draggable
+  sample points; Regenerate re-extracts from the source image.
+- Add points by hand (``A`` or the ``+`` swatch), right-click to remove.
+- Read-only inspector with Copy hex.
+- Export ``.aco``; in CSP: Color Set palette > Import color set.
+
+Compatibility: boards are saved as ``.bee`` schema v3. Upstream BeeRef
+opens them and keeps palettes on a normal save, but drops them on Save As.
+
+Run with ``make run``, test with ``make test``, install with
+``make install`` (Python 3.12 via uv).
+
+----
+
 BeeRef — A Simple Reference Image Viewer
 ========================================
 

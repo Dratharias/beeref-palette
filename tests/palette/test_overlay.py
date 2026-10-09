@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import Qt
 
@@ -44,7 +42,8 @@ def test_point_is_drawn(view):
     _, point = setup(view)
     pos = view.palette_overlay.view_pos(view, point).toPoint()
     image = view.viewport().grab().toImage()
-    ring = image.pixelColor(pos + QtCore.QPoint(view.palette_overlay.RADIUS, 0))
+    radius = view.palette_overlay.RADIUS
+    ring = image.pixelColor(pos + QtCore.QPoint(radius, 0))
     assert ring != QtGui.QColor(*RED)
 
 

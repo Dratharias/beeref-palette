@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
 
 from beeref.items import BeePixmapItem

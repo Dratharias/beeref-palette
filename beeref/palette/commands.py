@@ -79,7 +79,8 @@ class ReplacePoints(QtGui.QUndoCommand):
         self.old = (list(palette.points), palette.source_item)
 
     def _apply(self, state):
-        self.palette.points, self.palette.source_item = list(state[0]), state[1]
+        self.palette.points = list(state[0])
+        self.palette.source_item = state[1]
         self.store.selected_point = None
         self.store.notify()
 

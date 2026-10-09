@@ -1,3 +1,9 @@
+0.3.4+palette.1
+===============
+
+* Fork: BeeRef Palette — palette panel, distinct-color extraction,
+  sample points, color inspector, .aco export, .bee schema v3.
+
 0.3.4-dev (unreleased)
 ======================
 

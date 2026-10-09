@@ -2,7 +2,7 @@ from PyQt6 import QtCore, QtGui
 
 
 def stripes(colors, widths=None, height=20):
-    """Image made of vertical stripes, one per color (RGB tuples or QColors)."""
+    """Image of vertical stripes, one per color (RGB tuples or QColors)."""
     widths = widths or [20] * len(colors)
     image = QtGui.QImage(sum(widths), height,
                          QtGui.QImage.Format.Format_ARGB32)

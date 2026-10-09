@@ -14,7 +14,8 @@ def board(view):
     view.scene.addItem(a)
     view.scene.addItem(b)
     store = view.scene.palettes
-    lava = Palette('Lava', [SamplePoint(a, 0.1, 0.5), SamplePoint(b, 0.5, 0.5)],
+    lava = Palette('Lava',
+                   [SamplePoint(a, 0.1, 0.5), SamplePoint(b, 0.5, 0.5)],
                    source_item=a)
     mood = Palette('Mood', [SamplePoint(a, 0.9, 0.5)])
     store.add(lava)
