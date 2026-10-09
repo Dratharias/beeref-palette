@@ -61,7 +61,9 @@ photo, or a mood palette composed by hand across several references.
 - Only the active palette's points are drawn: a small disc filled with the sampled color, with a
   light and a dark ring so it reads on any background. Constant on-screen size at any zoom.
 - Dragging a point moves the sample; its color updates live.
-- `Delete` or right-click removes the point.
+- Right-click removes the point (on the canvas or on its swatch).
+- Points are drawn by the view as an overlay, not as scene items, so they never end up in
+  scene exports (PNG/SVG), selections, or bounding boxes.
 
 ### Auto-extract
 
@@ -89,7 +91,9 @@ Every palette operation goes through BeeRef's undo stack (`Ctrl+Z`).
 - `USER_VERSION` 2 → 3, with a migration adding:
   - `palettes (id, name, position, source_item_id → items.id ON DELETE SET NULL)`
   - `palette_points (id, palette_id → palettes.id ON DELETE CASCADE,
-    item_id → items.id ON DELETE CASCADE, x REAL, y REAL, position INT, color TEXT)`
+    item_id → items.id, x REAL, y REAL, position INT, color TEXT)`
+  - On save, the palette tables are rewritten from scratch after the items; on load, points
+    whose image no longer exists are dropped.
   - board settings (active palette, auto-extract) stored in a `palette_meta` key/value table.
 - Palettes are written after items, so points can reference the items' `save_id`s.
 - Compatibility: upstream BeeRef opens version-3 files (it only migrates when the file version
@@ -98,7 +102,7 @@ Every palette operation goes through BeeRef's undo stack (`Ctrl+Z`).
 
 ### Edge cases
 
-- Image deleted → its points go with it (restored on undo).
+- Image deleted → its points are hidden and not saved (they come back on undo).
 - Image cropped → points outside the crop are drawn greyed out and come back if uncropped.
 - Image flipped → the point follows the pixel, not the screen position.
 - Image with fewer distinct colors than requested, or tiny image → fewer points, no error.
@@ -110,13 +114,16 @@ Every palette operation goes through BeeRef's undo stack (`Ctrl+Z`).
 
 1. Downscale to ~64 px on the long side; skip pixels with alpha < 128.
 2. Convert sRGB → CIE Lab.
-3. k-means with deterministic k-means++ seeding (fixed seed), at most 20 iterations — the same
-   image always yields the same palette.
-4. For each cluster, pick the **real pixel** closest to the centroid (so every color and point
-   exists in the image); map it back to relative full-image coordinates.
-5. Sort clusters by size, largest first.
+3. k-means over-segmentation: k = min(3·n, distinct colors), deterministic k-means++ seeding
+   (fixed seed), at most 20 iterations — the same image always yields the same palette.
+4. **Distinct colors**: walk the clusters from largest to smallest and keep a cluster only if
+   its centroid is at least `MIN_DELTA_E = 15` (CIE76 ΔE) away from every cluster already kept;
+   stop at n. Near-duplicate shades are dropped, and small but distinct accents survive thanks
+   to the over-segmentation. Images with few distinct colors yield fewer than n points.
+5. For each kept cluster, pick the **real pixel** closest to the centroid (so every color and
+   point exists in the image); map it back to relative full-image coordinates.
 
-Pure Python; add NumPy only if a 64 px extraction takes more than 150 ms.
+NumPy does the clustering (pure Python would take about a second per extraction).
 
 ## `.aco` export
 
@@ -133,7 +140,8 @@ New modules, each with one job:
 | `beeref/palette/extract.py` | `extract()` — pure function. |
 | `beeref/palette/aco.py` | `write_aco()` — pure function. |
 | `beeref/palette/commands.py` | Undoable commands: add/move/remove point, extract, create/rename/delete/reorder palette. |
-| `beeref/palette/marker.py` | Canvas item for one sample point (constant size, draggable). |
+| `beeref/palette/overlay.py` | Draws the active palette's points over the view; hit-testing. |
+| `beeref/palette/controller.py` | User-level operations (new, extract, regenerate, pick, export) wired to the undo stack. |
 | `beeref/widgets/palette_panel.py` | Side panel, swatches, collapse chevron. |
 | `beeref/widgets/color_inspector.py` | Read-only hue ring/triangle, values, Copy hex. |
 
@@ -147,7 +155,7 @@ state).
 pytest + pytest-qt, like the existing suite:
 
 - `extract`: synthetic images with 2, 3 and 6 flat colors; determinism; transparency ignored;
-  fewer distinct colors than `n`.
+  fewer distinct colors than `n`; near-duplicate shades are never both returned.
 - `write_aco`: byte-level check and round trip through a small test-only reader.
 - Persistence: save → reload keeps palettes and points; a version-2 file migrates; deleting an
   image cascades its points.
