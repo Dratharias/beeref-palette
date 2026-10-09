@@ -7,6 +7,8 @@
   for .aco exports; both default to the Documents folder.
 * Hold Space and drag with the left button (or pen) to pan, like in
   Clip Studio Paint; pick and sample modes resume after the drag.
+* First start opens the window at 80% of the screen; window size and
+  position are now also remembered when quitting with File > Quit.
 
 0.3.4-dev (unreleased)
 ======================

@@ -54,13 +54,11 @@ class BeeRefMainWindow(QtWidgets.QMainWindow):
         app.setApplicationName(constants.APPNAME)
         self.setWindowIcon(BeeAssets().logo)
         self.view = BeeGraphicsView(app, self)
-        default_window_size = QtCore.QSize(500, 300)
         geom = self.view.settings.value('MainWindow/geometry')
-        if geom is None:
-            self.resize(default_window_size)
-        else:
-            if not self.restoreGeometry(geom):
-                self.resize(default_window_size)
+        if geom is None or not self.restoreGeometry(geom):
+            self.resize_to_screen()
+        # File > Quit (Ctrl+Q) ends the app without a closeEvent
+        app.aboutToQuit.connect(self.save_geometry)
         self.palette_sidebar = PaletteSidebar(
             self.view.palette_controller, self.view.settings)
         self.view.palette_sidebar = self.palette_sidebar
@@ -73,9 +71,20 @@ class BeeRefMainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(central)
         self.show()
 
+    def resize_to_screen(self):
+        """First start: cover most of the screen, centered."""
+        available = self.screen().availableGeometry()
+        size = available.size() * 0.8
+        self.resize(size)
+        self.move(available.center() - QtCore.QPoint(
+            size.width() // 2, size.height() // 2))
+
+    def save_geometry(self):
+        self.view.settings.setValue('MainWindow/geometry',
+                                    self.saveGeometry())
+
     def closeEvent(self, event):
-        geom = self.saveGeometry()
-        self.view.settings.setValue('MainWindow/geometry', geom)
+        self.save_geometry()
         event.accept()
 
     def __del__(self):

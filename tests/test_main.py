@@ -42,3 +42,21 @@ def test_main(startup_mock, args_mock, app_mock, qapp):
 
     args_mock.assert_called_once_with(with_check=True)
     startup_mock.assert_called()
+
+
+def test_mainwindow_default_size_fills_most_of_screen(settings, qapp):
+    settings.remove('MainWindow/geometry')
+    window = BeeRefMainWindow(qapp)
+    available = window.screen().availableGeometry()
+    assert window.width() >= int(available.width() * 0.75)
+    assert window.height() >= int(available.height() * 0.75)
+    window.deleteLater()
+
+
+def test_mainwindow_saves_geometry_when_app_quits(settings, qapp):
+    window = BeeRefMainWindow(qapp)
+    window.resize(640, 480)
+    settings.remove('MainWindow/geometry')
+    qapp.aboutToQuit.emit()
+    assert settings.value('MainWindow/geometry') is not None
+    window.deleteLater()
