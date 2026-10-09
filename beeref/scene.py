@@ -26,6 +26,7 @@ import rpack
 from beeref import commands
 from beeref.config import BeeSettings
 from beeref.items import item_registry, BeeErrorItem, sort_by_filename
+from beeref.palette.model import PaletteStore
 from beeref.selection import MultiSelectItem, RubberbandItem
 
 
@@ -52,12 +53,14 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
         self.edit_item = None
         self.crop_item = None
         self.settings = BeeSettings()
+        self.palettes = PaletteStore()
         self.clear()
         self._clear_ongoing = False
 
     def clear(self):
         self._clear_ongoing = True
         super().clear()
+        self.palettes.clear()
         self.internal_clipboard = []
         self.rubberband_item = RubberbandItem()
         self.multi_select_item = MultiSelectItem()

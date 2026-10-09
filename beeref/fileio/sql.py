@@ -35,6 +35,7 @@ from PyQt6 import QtGui
 
 from beeref import constants
 from beeref.items import BeePixmapItem, BeeErrorItem
+from beeref.palette.model import PaletteStore
 from .errors import BeeFileIOError, IMG_LOADING_ERROR_MSG
 from .schema import SCHEMA, USER_VERSION, MIGRATIONS, APPLICATION_ID
 
@@ -236,6 +237,9 @@ class SQLiteIO:
                     return
                 # Give main thread time to process items:
                 self.worker.msleep(10)
+        store = self._palette_store()
+        if store is not None:
+            store.pending = self.read_palettes()
         if self.worker:
             self.worker.finished.emit(self.filename, [])
 
@@ -260,6 +264,67 @@ class SQLiteIO:
                 self._close_connection()
                 self.write()
 
+    def _palette_store(self):
+        store = getattr(self.scene, 'palettes', None)
+        return store if isinstance(store, PaletteStore) else None
+
+    def read_palettes(self):
+        """Palette data in PaletteStore.restore format, or None."""
+        try:
+            palettes = self.fetchall(
+                'SELECT id, name, source_item_id FROM palettes '
+                'ORDER BY position')
+            points = self.fetchall(
+                'SELECT palette_id, item_id, x, y, color FROM palette_points '
+                'ORDER BY palette_id, position')
+            meta = dict(self.fetchall('SELECT key, value FROM palette_meta'))
+        except sqlite3.OperationalError:
+            logger.debug('No palette tables found')
+            return None
+        by_palette = {}
+        for palette_id, item_id, x, y, color in points:
+            by_palette.setdefault(palette_id, []).append(
+                {'save_id': item_id, 'x': x, 'y': y, 'color': color})
+        active = meta.get('active') or ''
+        return {
+            'palettes': [{'name': name,
+                          'source_save_id': source,
+                          'points': by_palette.get(pid, [])}
+                         for pid, name, source in palettes],
+            'active': int(active) if active.isdigit() else None,
+            'auto_extract': meta.get('auto_extract') == '1',
+        }
+
+    def write_palettes(self):
+        store = self._palette_store()
+        if store is None:
+            return
+        self.ex('DELETE FROM palette_points')
+        self.ex('DELETE FROM palettes')
+        self.ex('DELETE FROM palette_meta')
+        for position, palette in enumerate(store.palettes):
+            source = palette.source_item
+            source_id = (source.save_id
+                         if source is not None and source.scene() is not None
+                         else None)
+            self.ex('INSERT INTO palettes (name, position, source_item_id) '
+                    'VALUES (?, ?, ?)', (palette.name, position, source_id))
+            palette_id = self.cursor.lastrowid
+            points = [p for p in palette.points
+                      if p.is_available and p.item.save_id]
+            self.exmany(
+                'INSERT INTO palette_points '
+                '(palette_id, item_id, x, y, position, color) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                [(palette_id, p.item.save_id, p.x, p.y, i, p.color.name())
+                 for i, p in enumerate(points)])
+        active = next((i for i, p in enumerate(store.palettes)
+                       if p is store.active), None)
+        self.exmany('INSERT INTO palette_meta (key, value) VALUES (?, ?)',
+                    [('active', '' if active is None else str(active)),
+                     ('auto_extract', '1' if store.auto_extract else '0')])
+        self.connection.commit()
+
     def write_data(self):
         to_delete = {row[0] for row in self.fetchall('SELECT id from ITEMS')}
         # We don't want to touch existing items that are displayed as errors:
@@ -283,6 +348,7 @@ class SQLiteIO:
                 if self.worker.canceled:
                     break
         self.delete_items(to_delete)
+        self.write_palettes()
         self.ex('VACUUM')
         self.connection.commit()
         if self.worker:

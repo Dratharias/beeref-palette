@@ -1,5 +1,37 @@
-USER_VERSION = 2
+USER_VERSION = 3
 APPLICATION_ID = 2060242126
+
+
+PALETTE_SCHEMA = [
+    """
+    CREATE TABLE palettes (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        source_item_id INTEGER
+          REFERENCES items (id) ON DELETE SET NULL
+    )
+    """,
+    """
+    CREATE TABLE palette_points (
+        id INTEGER PRIMARY KEY,
+        palette_id INTEGER NOT NULL
+          REFERENCES palettes (id) ON DELETE CASCADE,
+        item_id INTEGER NOT NULL
+          REFERENCES items (id) ON DELETE CASCADE,
+        x REAL NOT NULL,
+        y REAL NOT NULL,
+        position INTEGER NOT NULL,
+        color TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE palette_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )
+    """,
+]
 
 
 SCHEMA = [
@@ -31,6 +63,7 @@ SCHEMA = [
     )
     """,
 ]
+SCHEMA = SCHEMA + PALETTE_SCHEMA
 
 
 MIGRATIONS = {
@@ -38,4 +71,5 @@ MIGRATIONS = {
         "ALTER TABLE items ADD COLUMN data JSON",
         "UPDATE items SET data = json_object('filename', filename)",
     ],
+    3: PALETTE_SCHEMA,
 }

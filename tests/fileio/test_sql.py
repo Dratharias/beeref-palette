@@ -148,7 +148,7 @@ def test_sqliteio_create_schema_on_new_when_create_new(tmpfile):
     result = io.fetchone(
         'SELECT COUNT(*) FROM sqlite_master '
         'WHERE type="table" AND name NOT LIKE "sqlite_%"')
-    assert result[0] == 2
+    assert result[0] == 5
     scene_mock.clear_save_ids.assert_called_once()
 
 
@@ -180,7 +180,8 @@ def test_sqliteio_readonly_doesnt_allow_write(view, tmpfile):
 
 def test_sqliteio_write_calls_create_schema_on_new(tmpfile, view):
     io = SQLiteIO(tmpfile, view.scene, create_new=True)
-    with patch.object(io, 'create_schema_on_new') as crmock:
+    with patch.object(io, 'create_schema_on_new') as crmock, \
+            patch.object(io, 'write_palettes'):
         with patch.object(io, 'fetchall'):
             with patch.object(io, 'exmany'):
                 io.write()
