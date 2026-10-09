@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with BeeRef.  If not, see <https://www.gnu.org/licenses/>.
 
-APPNAME = 'BeeRef'
+APPNAME = 'BeeRef Palette'
 APPNAME_FULL = f'{APPNAME} Reference Image Viewer'
-VERSION = '0.3.4-dev'
+VERSION = '0.3.4+palette.1'
 WEBSITE = 'https://github.com/rbreu/beeref'
 COPYRIGHT = 'Copyright © 2021-2024 Rebecca Breu'
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=BeeRef Palette
+GenericName=Reference Board
+Comment=Reference image viewer with color palettes
+Exec=beeref-palette %f
+Icon=beeref-palette
+Terminal=false
+Type=Application
+MimeType=application/x-beeref;
+Categories=Qt;KDE;Graphics;
