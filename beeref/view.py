@@ -32,6 +32,7 @@ from beeref import widgets
 from beeref.items import BeePixmapItem, BeeTextItem
 from beeref.main_controls import MainControlsMixin
 from beeref.palette.controller import PaletteController
+from beeref.palette.overlay import PaletteOverlay
 from beeref.scene import BeeGraphicsScene
 from beeref.utils import get_file_extension_from_format, qcolor_to_hex
 
@@ -48,6 +49,7 @@ class BeeGraphicsView(MainControlsMixin,
     ZOOM_MODE = 2
     SAMPLE_COLOR_MODE = 3
     PICK_POINT_MODE = 4
+    DRAG_POINT_MODE = 5
 
     def __init__(self, app, parent=None):
         super().__init__(parent)
@@ -80,6 +82,8 @@ class BeeGraphicsView(MainControlsMixin,
         self.setScene(self.scene)
         self.palette_controller = PaletteController(self)
         self.palette_sidebar = None
+        self.palette_overlay = PaletteOverlay(self.scene.palettes)
+        self.scene.palettes.changed.connect(self.viewport().update)
 
         # Context menu and actions
         self.build_menu_and_actions()
@@ -133,7 +137,13 @@ class BeeGraphicsView(MainControlsMixin,
             title = f'{name}{clean} - {constants.APPNAME}'
         self.parent.setWindowTitle(title)
 
+    def drawForeground(self, painter, rect):
+        super().drawForeground(painter, rect)
+        self.palette_overlay.paint(painter, self)
+
     def on_scene_changed(self, region):
+        if self.scene.palettes.active is not None:
+            self.viewport().update()
         if not self.scene.items():
             logger.debug('No items in scene')
             self.setTransform(QtGui.QTransform())
@@ -158,6 +168,10 @@ class BeeGraphicsView(MainControlsMixin,
         self.update_window_title()
 
     def on_context_menu(self, point):
+        hit = self.palette_overlay.hit_test(self, QtCore.QPointF(point))
+        if hit is not None:
+            self.palette_controller.remove_point(hit)
+            return
         self.context_menu.exec(self.mapToGlobal(point))
 
     def get_supported_image_formats(self, cls):
@@ -895,6 +909,18 @@ class BeeGraphicsView(MainControlsMixin,
             event.accept()
             return
 
+        if event.button() == Qt.MouseButton.LeftButton:
+            hit = self.palette_overlay.hit_test(self, event.position())
+            if hit is not None:
+                self.scene.palettes.select_point(hit)
+                self.active_mode = self.DRAG_POINT_MODE
+                self.drag_point = hit
+                self.drag_point_start = (hit.x, hit.y)
+                event.accept()
+                return
+            if self.scene.palettes.selected_point is not None:
+                self.scene.palettes.select_point(None)
+
         action, inverted = self.keyboard_settings.mouse_action_for_event(event)
 
         if action == 'zoom':
@@ -919,6 +945,11 @@ class BeeGraphicsView(MainControlsMixin,
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        if self.active_mode == self.DRAG_POINT_MODE:
+            self.palette_controller.drag_point_to(
+                self.drag_point, self.mapToScene(event.pos()))
+            event.accept()
+            return
         if self.active_mode == self.PAN_MODE:
             self.reset_previous_transform()
             pos = event.position()
@@ -950,6 +981,12 @@ class BeeGraphicsView(MainControlsMixin,
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if self.active_mode == self.DRAG_POINT_MODE:
+            self.palette_controller.finish_point_drag(
+                self.drag_point, self.drag_point_start)
+            self.active_mode = None
+            event.accept()
+            return
         if self.active_mode == self.PAN_MODE:
             logger.trace('End pan')
             self.viewport().unsetCursor()
