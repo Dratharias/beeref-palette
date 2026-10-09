@@ -1,0 +1,165 @@
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtCore import Qt
+
+from beeref.items import BeePixmapItem
+from beeref.palette.model import Palette, SamplePoint
+from tests.palette.aco_reader import read_aco
+from tests.palette.helpers import stripes
+
+RED, GREEN, BLUE = (220, 30, 30), (30, 180, 60), (40, 60, 210)
+
+
+def add_image(view, colors=(RED, GREEN, BLUE)):
+    item = BeePixmapItem(stripes(list(colors), height=60))
+    view.scene.addItem(item)
+    return item
+
+
+def click(qtbot, view, scene_pos, button=Qt.MouseButton.LeftButton, jitter=0):
+    pos = view.mapFromScene(scene_pos)
+    qtbot.mousePress(view.viewport(), button, pos=pos)
+    qtbot.mouseRelease(view.viewport(), button,
+                       pos=pos + QtCore.QPoint(jitter, 0))
+
+
+def test_new_palette_is_undoable(view):
+    c = view.palette_controller
+    palette = c.new_palette()
+    assert c.store.palettes == [palette] and c.store.active is palette
+    view.undo_stack.undo()
+    assert c.store.palettes == []
+
+
+def test_extract_into_active_creates_palette_in_one_undo_step(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item)
+    palette = c.store.active
+    assert len(palette.points) == 3 and palette.source_item is item
+    view.undo_stack.undo()
+    assert c.store.palettes == []
+
+
+def test_color_count_setting(view, settings):
+    settings.setValue('Palette/color_count', 3)
+    c = view.palette_controller
+    c.extract_into_active(
+        add_image(view, (RED, GREEN, BLUE, (240, 220, 40), (10, 10, 10))))
+    assert len(c.store.active.points) == 3
+
+
+def test_click_extracts_only_when_auto_on(qtbot, view):
+    view.show()
+    c = view.palette_controller
+    item = add_image(view)
+    view.fitInView(item)
+    click(qtbot, view, item.sceneBoundingRect().center())
+    assert c.store.palettes == []
+    c.set_auto_extract(True)
+    click(qtbot, view, item.sceneBoundingRect().center(), jitter=2)
+    assert len(c.store.active.points) == 3
+
+
+def test_drag_does_not_extract(qtbot, view):
+    view.show()
+    c = view.palette_controller
+    c.set_auto_extract(True)
+    item = add_image(view)
+    view.fitInView(item)
+    start = view.mapFromScene(item.sceneBoundingRect().center())
+    qtbot.mousePress(view.viewport(), Qt.MouseButton.LeftButton, pos=start)
+    qtbot.mouseMove(view.viewport(), pos=start + QtCore.QPoint(40, 0))
+    qtbot.mouseRelease(view.viewport(), Qt.MouseButton.LeftButton,
+                       pos=start + QtCore.QPoint(40, 0))
+    assert c.store.palettes == []
+
+
+def test_regenerate(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item)
+    palette = c.store.active
+    palette.points.pop()
+    assert c.regenerate(palette)
+    assert len(palette.points) == 3
+    assert not c.regenerate(Palette('empty'))
+
+
+def test_pick_mode_adds_point(qtbot, view):
+    view.show()
+    c = view.palette_controller
+    item = add_image(view)
+    view.fitInView(item)
+    view.enter_pick_point_mode()
+    assert view.active_mode == view.PICK_POINT_MODE
+    rect = item.sceneBoundingRect()
+    click(qtbot, view, QtCore.QPointF(rect.left() + rect.width() * 5 / 6,
+                                      rect.center().y()))
+    point = c.store.active.points[0]
+    assert point.color == QtGui.QColor(*BLUE)
+    assert view.active_mode is None
+
+
+def test_pick_mode_on_empty_canvas_adds_nothing(qtbot, view):
+    view.show()
+    add_image(view)
+    view.enter_pick_point_mode()
+    click(qtbot, view, QtCore.QPointF(-5000, -5000))
+    assert all(not p.points for p in view.palette_controller.store.palettes)
+
+
+def test_escape_cancels_pick_mode(qtbot, view):
+    view.enter_pick_point_mode()
+    qtbot.keyClick(view, Qt.Key.Key_Escape)
+    assert view.active_mode is None
+
+
+def test_drag_point_then_undo(view):
+    c = view.palette_controller
+    item = add_image(view)
+    point = SamplePoint(item, 0.1, 0.5)
+    c.store.add(Palette('A', [point]))
+    rect = item.sceneBoundingRect()
+    c.drag_point_to(point, QtCore.QPointF(rect.right() - 1, rect.center().y()))
+    assert point.color == QtGui.QColor(*BLUE)
+    c.finish_point_drag(point, (0.1, 0.5))
+    view.undo_stack.undo()
+    assert (point.x, point.color) == (0.1, QtGui.QColor(*RED))
+
+
+def test_rename_delete_reorder_remove(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item)
+    palette = c.store.active
+    first = palette.points[0]
+    c.rename(palette, 'Magma')
+    c.reorder_point(palette, first, 2)
+    c.remove_point(first)
+    assert palette.name == 'Magma' and first not in palette.points
+    c.delete(palette)
+    assert c.store.palettes == []
+    for _ in range(3):       # undo delete, remove, reorder — not rename
+        view.undo_stack.undo()
+    assert palette.name == 'Magma' and palette.points[0] is first
+
+
+def test_export(view, tmpfile):
+    c = view.palette_controller
+    c.extract_into_active(add_image(view))
+    c.export(c.store.active, tmpfile)
+    assert len(read_aco(tmpfile)) == 3
+    view.filename = '/tmp/Volcano.bee'
+    c.store.active.name = 'Magma'
+    assert c.default_export_name(c.store.active) == 'Volcano - Magma.aco'
+
+
+def test_restore_loaded(view, tmpfile):
+    from beeref.fileio import save_bee
+    c = view.palette_controller
+    c.extract_into_active(add_image(view))
+    save_bee(tmpfile, view.scene, create_new=True)
+    view.open_from_file(tmpfile)
+    view.worker.wait()
+    QtCore.QCoreApplication.processEvents()
+    assert len(c.store.palettes) == 1 and len(c.store.active.points) == 3

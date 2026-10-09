@@ -113,6 +113,11 @@ settings_events = BeeSettingsEvents()
 class BeeSettings(QtCore.QSettings):
 
     FIELDS = {
+        'Palette/color_count': {
+            'default': 6,
+            'cast': int,
+            'validate': lambda x: 3 <= x <= 12,
+        },
         'Save/confirm_close_unsaved': {
             'default': True,
             'cast': bool,

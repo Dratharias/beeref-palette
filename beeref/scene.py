@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 class BeeGraphicsScene(QtWidgets.QGraphicsScene):
     cursor_changed = QtCore.pyqtSignal(QtGui.QCursor)
     cursor_cleared = QtCore.pyqtSignal()
+    image_clicked = QtCore.pyqtSignal(object)
 
     MOVE_MODE = 1
     RUBBERBAND_MODE = 2
@@ -54,6 +55,7 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
         self.crop_item = None
         self.settings = BeeSettings()
         self.palettes = PaletteStore()
+        self.press_item = None
         self.clear()
         self._clear_ongoing = False
 
@@ -376,6 +378,7 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
             self.event_start = event.scenePos()
             item_at_pos = self.itemAt(
                 event.scenePos(), self.views()[0].transform())
+            self.press_item = item_at_pos
 
             if self.edit_item:
                 if item_at_pos != self.edit_item:
@@ -424,6 +427,13 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if (self.active_mode == self.MOVE_MODE
+                and event.button() == Qt.MouseButton.LeftButton
+                and getattr(self.press_item, 'is_image', False)):
+            scale = self.views()[0].transform().m11() or 1
+            moved = (event.scenePos() - self.event_start).manhattanLength()
+            if moved * scale <= 3:
+                self.image_clicked.emit(self.press_item)
         if self.active_mode == self.RUBBERBAND_MODE:
             self.end_rubberband_mode()
         if (self.active_mode == self.MOVE_MODE

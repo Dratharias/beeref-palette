@@ -31,6 +31,7 @@ from beeref.fileio.export import exporter_registry, ImagesToDirectoryExporter
 from beeref import widgets
 from beeref.items import BeePixmapItem, BeeTextItem
 from beeref.main_controls import MainControlsMixin
+from beeref.palette.controller import PaletteController
 from beeref.scene import BeeGraphicsScene
 from beeref.utils import get_file_extension_from_format, qcolor_to_hex
 
@@ -46,6 +47,7 @@ class BeeGraphicsView(MainControlsMixin,
     PAN_MODE = 1
     ZOOM_MODE = 2
     SAMPLE_COLOR_MODE = 3
+    PICK_POINT_MODE = 4
 
     def __init__(self, app, parent=None):
         super().__init__(parent)
@@ -76,6 +78,8 @@ class BeeGraphicsView(MainControlsMixin,
         self.scene.cursor_changed.connect(self.on_cursor_changed)
         self.scene.cursor_cleared.connect(self.on_cursor_cleared)
         self.setScene(self.scene)
+        self.palette_controller = PaletteController(self)
+        self.palette_sidebar = None
 
         # Context menu and actions
         self.build_menu_and_actions()
@@ -400,6 +404,12 @@ class BeeGraphicsView(MainControlsMixin,
             pos,
             self.scene.sample_color_at(self.mapToScene(pos)))
 
+    def enter_pick_point_mode(self):
+        self.cancel_active_modes()
+        logger.debug('Entering pick color point mode')
+        self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        self.active_mode = self.PICK_POINT_MODE
+
     def on_items_loaded(self, value):
         logger.debug('On items loaded: add queued items')
         self.scene.add_queued_items()
@@ -414,6 +424,7 @@ class BeeGraphicsView(MainControlsMixin,
         else:
             self.filename = filename
             self.scene.add_queued_items()
+            self.palette_controller.restore_loaded()
             self.on_action_fit_scene()
 
     def on_action_open_recent_file(self, filename):
@@ -876,6 +887,14 @@ class BeeGraphicsView(MainControlsMixin,
             event.accept()
             return
 
+        if self.active_mode == self.PICK_POINT_MODE:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.palette_controller.add_point_at(
+                    self.mapToScene(event.pos()))
+            self.cancel_sample_color_mode()
+            event.accept()
+            return
+
         action, inverted = self.keyboard_settings.mouse_action_for_event(event)
 
         if action == 'zoom':
@@ -953,7 +972,7 @@ class BeeGraphicsView(MainControlsMixin,
     def keyPressEvent(self, event):
         if self.keyPressEventMainControls(event):
             return
-        if self.active_mode == self.SAMPLE_COLOR_MODE:
+        if self.active_mode in (self.SAMPLE_COLOR_MODE, self.PICK_POINT_MODE):
             self.cancel_sample_color_mode()
             event.accept()
             return
