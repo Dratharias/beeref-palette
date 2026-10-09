@@ -29,9 +29,7 @@ def reload(view, filename):
     view.scene.clear()
     load_bee(filename, view.scene)
     view.scene.add_queued_items()
-    data = view.scene.palettes.pending
-    items = {i.save_id: i for i in view.scene.items_for_save()}
-    view.scene.palettes.restore(data, items)
+    view.palette_controller.restore_loaded()
     return view.scene.palettes
 
 
@@ -93,3 +91,48 @@ def test_scene_clear_clears_palettes(view):
     board(view)
     view.scene.clear()
     assert view.scene.palettes.palettes == []
+
+
+def png_bytes(colors):
+    from PyQt6 import QtCore
+    buf = QtCore.QBuffer()
+    buf.open(QtCore.QIODevice.OpenModeFlag.WriteOnly)
+    stripes(colors).save(buf, 'PNG')
+    return bytes(buf.data())
+
+
+def test_points_do_not_follow_a_reused_item_id(view, tmpfile):
+    a, b = board(view)
+    save_bee(tmpfile, view.scene, create_new=True)
+    con = sqlite3.connect(tmpfile)      # upstream: delete b, add an image
+    con.execute('DELETE FROM items WHERE id = ?', (b.save_id,))
+    con.execute('DELETE FROM sqlar WHERE item_id = ?', (b.save_id,))
+    new_id = con.execute(
+        "INSERT INTO items (type, x, y, z, scale, rotation, flip, data) "
+        "VALUES ('pixmap', 0, 0, 0, 1, 0, 1, json_object('filename', 'g'))"
+    ).lastrowid
+    data = png_bytes([(30, 180, 60), (90, 90, 90)])
+    con.execute('INSERT INTO sqlar (item_id, name, mode, sz, data) '
+                'VALUES (?, ?, ?, ?, ?)',
+                (new_id, f'{new_id:04}.png', 0o644, len(data), data))
+    con.commit()
+    con.close()
+    assert new_id == b.save_id
+    lava = reload(view, tmpfile).palettes[0]
+    assert len(lava.points) == 1
+
+
+def test_points_on_unreadable_image_survive_a_save(view, tmpfile):
+    a, b = board(view)
+    save_bee(tmpfile, view.scene, create_new=True)
+    con = sqlite3.connect(tmpfile)
+    con.execute("UPDATE sqlar SET data = x'00' WHERE item_id = ?",
+                (b.save_id,))
+    con.commit()
+    con.close()
+    reload(view, tmpfile)
+    save_bee(tmpfile, view.scene)
+    con = sqlite3.connect(tmpfile)
+    rows = con.execute('SELECT item_id FROM palette_points').fetchall()
+    con.close()
+    assert (b.save_id,) in rows

@@ -9,7 +9,8 @@ PALETTE_SCHEMA = [
         name TEXT NOT NULL,
         position INTEGER NOT NULL,
         source_item_id INTEGER
-          REFERENCES items (id) ON DELETE SET NULL
+          REFERENCES items (id) ON DELETE SET NULL,
+        source_item_sz INTEGER
     )
     """,
     """
@@ -22,7 +23,8 @@ PALETTE_SCHEMA = [
         x REAL NOT NULL,
         y REAL NOT NULL,
         position INTEGER NOT NULL,
-        color TEXT NOT NULL
+        color TEXT NOT NULL,
+        item_sz INTEGER
     )
     """,
     """

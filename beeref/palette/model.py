@@ -58,6 +58,9 @@ class SamplePoint:
         self.item = item
         self.x = x
         self.y = y
+        # Save id of an image that failed to load; kept so that saving the
+        # board does not drop the point.
+        self.missing_save_id = None
         self.color = QtGui.QColor(color) if color else QtGui.QColor()
         if color is None:
             self.refresh()
@@ -75,6 +78,8 @@ class SamplePoint:
         return self.item.crop.contains(self.pixel_pos())
 
     def refresh(self):
+        if not self.is_available:
+            return self.color
         color = sample_color(item_image(self.item), self.x, self.y)
         if color.isValid():
             self.color = color
@@ -87,6 +92,7 @@ class Palette:
         self.name = name
         self.points = list(points or [])
         self.source_item = source_item
+        self.missing_source_save_id = None
 
     def colors(self):
         return [QtGui.QColor(point.color) for point in self.points]
@@ -160,17 +166,29 @@ class PaletteStore(QtCore.QObject):
         self.pending = None
         self.notify()
 
-    def restore(self, data, items_by_save_id):
-        """Rebuild palettes from saved data; drop points of missing images."""
+    def restore(self, data, items_by_save_id, unloaded_save_ids=()):
+        """Rebuild palettes from saved data.
+
+        Points of images that are gone are dropped; points of images that
+        failed to load (``unloaded_save_ids``) are kept but unavailable.
+        """
         self.palettes = []
         for pdata in data.get('palettes', []):
-            points = [SamplePoint(items_by_save_id[d['save_id']],
-                                  d['x'], d['y'])
-                      for d in pdata['points']
-                      if d['save_id'] in items_by_save_id]
-            self.palettes.append(Palette(
-                pdata['name'], points,
-                items_by_save_id.get(pdata.get('source_save_id'))))
+            points = []
+            for d in pdata['points']:
+                if d['save_id'] in items_by_save_id:
+                    points.append(SamplePoint(
+                        items_by_save_id[d['save_id']], d['x'], d['y']))
+                elif d['save_id'] in unloaded_save_ids:
+                    point = SamplePoint(None, d['x'], d['y'], d['color'])
+                    point.missing_save_id = d['save_id']
+                    points.append(point)
+            source_id = pdata.get('source_save_id')
+            palette = Palette(pdata['name'], points,
+                              items_by_save_id.get(source_id))
+            if source_id in unloaded_save_ids:
+                palette.missing_source_save_id = source_id
+            self.palettes.append(palette)
         active = data.get('active')
         if active is not None and 0 <= active < len(self.palettes):
             self.active = self.palettes[active]

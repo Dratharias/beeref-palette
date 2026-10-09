@@ -271,12 +271,21 @@ class SQLiteIO:
     def read_palettes(self):
         """Palette data in PaletteStore.restore format, or None."""
         try:
+            # Upstream BeeRef saves with foreign keys off, so rows can point
+            # at deleted items or at new items that reused their id: only
+            # trust a reference whose image size still matches.
             palettes = self.fetchall(
-                'SELECT id, name, source_item_id FROM palettes '
-                'ORDER BY position')
+                'SELECT p.id, p.name, CASE WHEN s.sz IS p.source_item_sz '
+                'THEN p.source_item_id END '
+                'FROM palettes p '
+                'LEFT JOIN sqlar s ON s.item_id = p.source_item_id '
+                'ORDER BY p.position')
             points = self.fetchall(
-                'SELECT palette_id, item_id, x, y, color FROM palette_points '
-                'ORDER BY palette_id, position')
+                'SELECT pp.palette_id, pp.item_id, pp.x, pp.y, pp.color '
+                'FROM palette_points pp '
+                'JOIN sqlar s ON s.item_id = pp.item_id '
+                'AND s.sz IS pp.item_sz '
+                'ORDER BY pp.palette_id, pp.position')
             meta = dict(self.fetchall('SELECT key, value FROM palette_meta'))
         except sqlite3.OperationalError:
             logger.debug('No palette tables found')
@@ -299,6 +308,7 @@ class SQLiteIO:
         store = self._palette_store()
         if store is None:
             return
+        sizes = dict(self.fetchall('SELECT item_id, sz FROM sqlar'))
         self.ex('DELETE FROM palette_points')
         self.ex('DELETE FROM palettes')
         self.ex('DELETE FROM palette_meta')
@@ -306,18 +316,25 @@ class SQLiteIO:
             source = palette.source_item
             source_id = (source.save_id
                          if source is not None and source.scene() is not None
-                         else None)
-            self.ex('INSERT INTO palettes (name, position, source_item_id) '
-                    'VALUES (?, ?, ?)', (palette.name, position, source_id))
+                         else palette.missing_source_save_id)
+            if source_id not in sizes:
+                source_id = None
+            self.ex('INSERT INTO palettes '
+                    '(name, position, source_item_id, source_item_sz) '
+                    'VALUES (?, ?, ?, ?)',
+                    (palette.name, position, source_id, sizes.get(source_id)))
             palette_id = self.cursor.lastrowid
-            points = [p for p in palette.points
-                      if p.is_available and p.item.save_id]
+            rows = []
+            for p in palette.points:
+                save_id = (p.item.save_id if p.is_available
+                           else p.missing_save_id)
+                if save_id in sizes:
+                    rows.append((palette_id, save_id, p.x, p.y, len(rows),
+                                 p.color.name(), sizes[save_id]))
             self.exmany(
                 'INSERT INTO palette_points '
-                '(palette_id, item_id, x, y, position, color) '
-                'VALUES (?, ?, ?, ?, ?, ?)',
-                [(palette_id, p.item.save_id, p.x, p.y, i, p.color.name())
-                 for i, p in enumerate(points)])
+                '(palette_id, item_id, x, y, position, color, item_sz) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)', rows)
         active = next((i for i, p in enumerate(store.palettes)
                        if p is store.active), None)
         self.exmany('INSERT INTO palette_meta (key, value) VALUES (?, ?)',

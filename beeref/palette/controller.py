@@ -17,6 +17,7 @@
 
 import os.path
 
+from beeref.items import BeeErrorItem
 from beeref.palette import commands
 from beeref.palette.aco import write_aco
 from beeref.palette.extract import extract
@@ -156,4 +157,6 @@ class PaletteController:
         items = {item.save_id: item
                  for item in self.scene.items_for_save()
                  if getattr(item, 'is_image', False)}
-        self.store.restore(data, items)
+        unloaded = {item.original_save_id
+                    for item in self.scene.items_by_type(BeeErrorItem.TYPE)}
+        self.store.restore(data, items, unloaded)

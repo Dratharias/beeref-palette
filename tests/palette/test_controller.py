@@ -163,3 +163,35 @@ def test_restore_loaded(view, tmpfile):
     view.worker.wait()
     QtCore.QCoreApplication.processEvents()
     assert len(c.store.palettes) == 1 and len(c.store.active.points) == 3
+
+
+def press_wobble_release(qtbot, view, item, wobble):
+    start = view.mapFromScene(item.sceneBoundingRect().center())
+    end = start + wobble
+    qtbot.mousePress(view.viewport(), Qt.MouseButton.LeftButton, pos=start)
+    qtbot.mouseMove(view.viewport(), pos=end)
+    qtbot.mouseRelease(view.viewport(), Qt.MouseButton.LeftButton, pos=end)
+
+
+def test_diagonal_pen_wobble_is_a_click(qtbot, view):
+    view.show()
+    c = view.palette_controller
+    c.set_auto_extract(True)
+    item = add_image(view)
+    view.fitInView(item)
+    press_wobble_release(qtbot, view, item, QtCore.QPoint(2, 2))
+    assert c.store.active is not None
+
+
+def test_wobbly_click_extraction_is_the_only_undo_step(qtbot, view):
+    view.show()
+    c = view.palette_controller
+    c.set_auto_extract(True)
+    item = add_image(view)
+    view.fitInView(item)
+    item.setSelected(True)
+    press_wobble_release(qtbot, view, item, QtCore.QPoint(1, 1))
+    stack = view.undo_stack
+    assert [stack.text(i) for i in range(stack.count())] == ['Extract palette']
+    assert item.pos() == QtCore.QPointF(0, 0)
+    item.setSelected(False)

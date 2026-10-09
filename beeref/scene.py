@@ -427,13 +427,20 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        clicked = None
         if (self.active_mode == self.MOVE_MODE
                 and event.button() == Qt.MouseButton.LeftButton
                 and getattr(self.press_item, 'is_image', False)):
             scale = self.views()[0].transform().m11() or 1
-            moved = (event.scenePos() - self.event_start).manhattanLength()
-            if moved * scale <= 3:
-                self.image_clicked.emit(self.press_item)
+            delta = event.scenePos() - self.event_start
+            if math.hypot(delta.x(), delta.y()) * scale <= 3:
+                clicked = self.press_item
+                if self.palettes.auto_extract:
+                    # Pen wobble during a click: put the items back so the
+                    # extraction is the click's only undo step.
+                    for item in self.selectedItems():
+                        item.moveBy(-delta.x(), -delta.y())
+                    self.event_start = event.scenePos()
         if self.active_mode == self.RUBBERBAND_MODE:
             self.end_rubberband_mode()
         if (self.active_mode == self.MOVE_MODE
@@ -448,6 +455,8 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
                                          ignore_first_redo=True))
         self.active_mode = None
         super().mouseReleaseEvent(event)
+        if clicked is not None:
+            self.image_clicked.emit(clicked)
 
     def selectedItems(self, user_only=False):
         """If ``user_only`` is set to ``True``, only return items added
