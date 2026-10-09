@@ -1702,3 +1702,88 @@ def test_on_action_open_starts_in_board_dir(dialog_mock, settings, view):
     settings.setValue('Save/board_dir', '/boards')
     view.on_action_open()
     assert dialog_mock.call_args.kwargs['directory'] == '/boards'
+
+
+def space_key(event_type, autorepeat=False):
+    return QtGui.QKeyEvent(event_type, Qt.Key.Key_Space,
+                           Qt.KeyboardModifier.NoModifier, '', autorepeat)
+
+
+def left_press(x=10.0, y=20.0):
+    event = MagicMock()
+    event.position.return_value = QtCore.QPointF(x, y)
+    event.pos.return_value = QtCore.QPoint(int(x), int(y))
+    event.button.return_value = Qt.MouseButton.LeftButton
+    event.modifiers.return_value = Qt.KeyboardModifier.NoModifier
+    return event
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_space_left_drag_pans(mouse_event_mock, view):
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    event = left_press()
+    view.mousePressEvent(event)
+    assert view.active_mode == view.PAN_MODE
+    assert view.event_start == QtCore.QPointF(10.0, 20.0)
+    mouse_event_mock.assert_not_called()
+    event.accept.assert_called_once_with()
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_space_left_drag_pans_over_sample_point(mouse_event_mock, view):
+    view.palette_overlay.hit_test = MagicMock(return_value=object())
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    view.mousePressEvent(left_press())
+    assert view.active_mode == view.PAN_MODE
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_left_press_without_space_does_not_pan(mouse_event_mock, view):
+    view.mousePressEvent(left_press())
+    assert view.active_mode != view.PAN_MODE
+    mouse_event_mock.assert_called_once()
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_space_release_stops_space_pan(mouse_event_mock, view):
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    view.keyReleaseEvent(space_key(QtCore.QEvent.Type.KeyRelease))
+    view.mousePressEvent(left_press())
+    assert view.active_mode != view.PAN_MODE
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_space_autorepeat_release_keeps_space_pan(mouse_event_mock, view):
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    view.keyReleaseEvent(
+        space_key(QtCore.QEvent.Type.KeyRelease, autorepeat=True))
+    view.mousePressEvent(left_press())
+    assert view.active_mode == view.PAN_MODE
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+def test_focus_out_forgets_space(mouse_event_mock, view):
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    view.focusOutEvent(QtGui.QFocusEvent(QtCore.QEvent.Type.FocusOut))
+    view.mousePressEvent(left_press())
+    assert view.active_mode != view.PAN_MODE
+
+
+def test_space_does_not_cancel_pick_mode(view):
+    view.active_mode = view.PICK_POINT_MODE
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    assert view.active_mode == view.PICK_POINT_MODE
+
+
+@patch('PyQt6.QtWidgets.QGraphicsView.mousePressEvent')
+@patch('PyQt6.QtWidgets.QGraphicsView.mouseReleaseEvent')
+def test_space_pan_in_pick_mode_resumes_pick_mode(
+        release_mock, press_mock, view):
+    view.on_action_palette_add_point()
+    view.palette_controller.add_point_at = MagicMock()
+    view.keyPressEvent(space_key(QtCore.QEvent.Type.KeyPress))
+    view.mousePressEvent(left_press())
+    view.mouseReleaseEvent(MagicMock())
+    view.palette_controller.add_point_at.assert_not_called()
+    assert view.active_mode == view.PICK_POINT_MODE
+    assert view.viewport().cursor().shape() == Qt.CursorShape.CrossCursor

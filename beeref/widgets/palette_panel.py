@@ -146,6 +146,8 @@ class PaletteRow(QtWidgets.QFrame):
         self.name_edit = QtWidgets.QLineEdit(palette.name)
         self.name_edit.editingFinished.connect(self.on_name_edited)
         self.menu_button = QtWidgets.QToolButton()
+        # Buttons never keep focus: Space must reach the canvas to pan.
+        self.menu_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.menu_button.setText('⋯')
         self.menu_button.setPopupMode(
             QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -227,6 +229,7 @@ class PalettePanel(QtWidgets.QWidget):
         self.setFixedWidth(self.WIDTH)
 
         self.auto_checkbox = QtWidgets.QCheckBox('Auto-extract on click')
+        self.auto_checkbox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.auto_checkbox.toggled.connect(controller.set_auto_extract)
         self.count_spinbox = QtWidgets.QSpinBox()
         self.count_spinbox.setRange(3, 12)
@@ -235,6 +238,7 @@ class PalettePanel(QtWidgets.QWidget):
         self.count_spinbox.valueChanged.connect(
             lambda v: settings.setValue('Palette/color_count', v))
         self.new_button = QtWidgets.QPushButton('+ New palette')
+        self.new_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.new_button.clicked.connect(controller.new_palette)
 
         header = QtWidgets.QHBoxLayout()
@@ -246,6 +250,7 @@ class PalettePanel(QtWidgets.QWidget):
         self.list_layout.setContentsMargins(0, 0, 0, 0)
         self.list_layout.addStretch(1)
         scroll = QtWidgets.QScrollArea()
+        scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         scroll.setWidget(self.list_widget)
@@ -288,6 +293,7 @@ class PaletteSidebar(QtWidgets.QWidget):
         super().__init__(parent)
         self.settings = settings
         self.chevron = QtWidgets.QToolButton()
+        self.chevron.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.chevron.setFixedWidth(14)
         self.chevron.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed,
                                    QtWidgets.QSizePolicy.Policy.Expanding)

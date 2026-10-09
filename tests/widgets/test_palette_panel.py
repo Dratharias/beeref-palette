@@ -142,3 +142,15 @@ def test_export_starts_in_palette_dir(main_window, settings, tmpdir):
     assert dialog.call_args.args[2] == str(target.join(
         'Untitled - Palette 1.aco'))
     assert target.check(dir=True)
+
+
+def test_panel_buttons_never_take_keyboard_focus(main_window):
+    # Space pans the canvas; a focused checkbox or button would eat it.
+    from PyQt6 import QtWidgets
+    extracted(main_window)
+    side = sidebar(main_window)
+    widgets = (side.findChildren(QtWidgets.QAbstractButton)
+               + side.findChildren(QtWidgets.QAbstractScrollArea))
+    assert widgets
+    for widget in widgets:
+        assert widget.focusPolicy() == Qt.FocusPolicy.NoFocus, widget

@@ -5,6 +5,8 @@
   sample points, color inspector, .aco export, .bee schema v3.
 * Settings > Folders: default folder for boards (Open, Save As) and
   for .aco exports; both default to the Documents folder.
+* Hold Space and drag with the left button (or pen) to pan, like in
+  Clip Studio Paint; pick and sample modes resume after the drag.
 
 0.3.4-dev (unreleased)
 ======================

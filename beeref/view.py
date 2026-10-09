@@ -73,6 +73,8 @@ class BeeGraphicsView(MainControlsMixin,
         self.filename = None
         self.previous_transform = None
         self.active_mode = None
+        self.space_held = False
+        self.pan_resume = None
 
         self.scene = BeeGraphicsScene(self.undo_stack)
         self.scene.changed.connect(self.on_scene_changed)
@@ -895,6 +897,15 @@ class BeeGraphicsView(MainControlsMixin,
         if self.mousePressEventMainControls(event):
             return
 
+        if (self.space_held
+                and event.button() == Qt.MouseButton.LeftButton):
+            # Space + drag pans, like in painting apps; any active mode
+            # (pick, sample color) resumes when the drag ends.
+            self.pan_resume = (self.active_mode,
+                               self.viewport().cursor().shape())
+            self.begin_pan(event)
+            return
+
         if self.active_mode == self.SAMPLE_COLOR_MODE:
             if (event.button() == Qt.MouseButton.LeftButton):
                 color = self.scene.sample_color_at(
@@ -944,17 +955,20 @@ class BeeGraphicsView(MainControlsMixin,
             return
 
         if action == 'pan':
-            logger.trace('Begin pan')
-            self.active_mode = self.PAN_MODE
-            self.event_start = event.position()
-            self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
-            # ClosedHandCursor and OpenHandCursor don't work, but I
-            # don't know if that's only on my system or a general
-            # problem. It works with other cursors.
-            event.accept()
+            self.begin_pan(event)
             return
 
         super().mousePressEvent(event)
+
+    def begin_pan(self, event):
+        logger.trace('Begin pan')
+        self.active_mode = self.PAN_MODE
+        self.event_start = event.position()
+        self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+        # ClosedHandCursor and OpenHandCursor don't work, but I
+        # don't know if that's only on my system or a general
+        # problem. It works with other cursors.
+        event.accept()
 
     def mouseMoveEvent(self, event):
         if self.active_mode == self.DRAG_POINT_MODE:
@@ -1003,6 +1017,11 @@ class BeeGraphicsView(MainControlsMixin,
             logger.trace('End pan')
             self.viewport().unsetCursor()
             self.active_mode = None
+            if self.pan_resume:
+                self.active_mode, cursor = self.pan_resume
+                self.pan_resume = None
+                if self.active_mode is not None:
+                    self.viewport().setCursor(cursor)
             event.accept()
             return
         if self.active_mode == self.ZOOM_MODE:
@@ -1021,8 +1040,23 @@ class BeeGraphicsView(MainControlsMixin,
     def keyPressEvent(self, event):
         if self.keyPressEventMainControls(event):
             return
+        if event.key() == Qt.Key.Key_Space:
+            self.space_held = True
+            event.accept()
+            return
         if self.active_mode in (self.SAMPLE_COLOR_MODE, self.PICK_POINT_MODE):
             self.cancel_sample_color_mode()
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key.Key_Space and not event.isAutoRepeat():
+            self.space_held = False
+            event.accept()
+            return
+        super().keyReleaseEvent(event)
+
+    def focusOutEvent(self, event):
+        self.space_held = False
+        super().focusOutEvent(event)

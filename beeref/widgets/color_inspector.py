@@ -110,6 +110,7 @@ class ColorInspector(QtWidgets.QWidget):
             grid.addWidget(QtWidgets.QLabel(f'{name}:'), i, 0)
             grid.addWidget(label, i, 1)
         self.copy_button = QtWidgets.QPushButton('Copy hex')
+        self.copy_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.copy_button.clicked.connect(self.copy_hex)
 
         left = QtWidgets.QVBoxLayout()

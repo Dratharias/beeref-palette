@@ -10,6 +10,7 @@ color palettes from reference images for painting in Clip Studio Paint.
 - Add points by hand (``A`` or the ``+`` swatch), right-click to remove.
 - Read-only inspector with Copy hex.
 - Export ``.aco``; in CSP: Color Set palette > Import color set.
+- Hold Space and drag to pan the board.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
 Compatibility: boards are saved as ``.bee`` schema v3. Upstream BeeRef
