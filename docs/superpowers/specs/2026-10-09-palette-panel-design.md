@@ -1,0 +1,156 @@
+# BeeRef Palette — palette panel design
+
+Date: 2026-10-09. Status: approved in conversation, pending written-spec review.
+
+## Goal
+
+A fork of BeeRef (GPL-3, upstream dormant since 2024-06) that turns reference boards into a
+source of color palettes for painting in Clip Studio Paint (CSP, running under Wine on Bazzite /
+KDE Wayland). The user picks palettes from references — automatically, then refined by hand —
+and exports them as Photoshop `.aco` swatches, which CSP imports through
+**Color Set > Import color set** (`.cls` or `.aco`, per the CSP Ver.5 guide).
+
+Success: open a board, click a reference, get a sensible palette, nudge a few sample points,
+export, import in CSP — without leaving the BeeRef look and feel.
+
+### Already in BeeRef (not rebuilt)
+
+Per-image grayscale view, flip, and a color-gamut view (`widgets/color_gamut.py`).
+
+### Out of scope (later, if ever)
+
+Screen-wide color picking (needs the Wayland color-picker portal), `.cls` export, copying hex to
+the clipboard, Flatpak packaging, upstreaming.
+
+## User-facing behavior
+
+### Palette panel
+
+A right-hand side panel, shown/hidden with a keyboard shortcut or **View > Palettes**, and
+**collapsible to a thin strip** with a chevron (`«` expand / `»` collapse). Expanded/collapsed
+state persists across sessions (app settings).
+
+- **Header**: *Auto-extract on click* toggle, color count spin box (3–12, default 6),
+  **+ New palette** button.
+- **Palette list**: every palette of the board, each with an editable name and a row of swatches.
+  Exactly one palette is **active** (highlighted); clicking a palette makes it active.
+- **Per-palette menu**: Rename, Regenerate, Export .aco…, Delete.
+- **Swatches**: hover → tooltip with hex, RGB, HSV. Click → highlight its point on the canvas.
+  Drag → reorder. Right-click → remove. A trailing **+** swatch enters pick mode: the next click
+  on an image adds a point there.
+
+A board can have zero, one or many palettes; none is created until the user asks for one or
+auto-extract fires.
+
+### Sample points on the canvas
+
+- Only the active palette's points are drawn: a small disc filled with the sampled color, with a
+  light and a dark ring so it reads on any background. Constant on-screen size at any zoom.
+- Dragging a point moves the sample; its color updates live.
+- `Delete` or right-click removes the point.
+
+### Auto-extract
+
+- When the toggle is on, a **plain click** (press + release without drag) on an image
+  **replaces** the active palette's points with an extraction of that image (creating a palette
+  if none exists). Dragging still moves images as usual.
+- **Regenerate** re-runs extraction on the palette's source image (the image of its last
+  auto-extract). Disabled when the palette has no source image.
+
+### Undo
+
+Every palette operation goes through BeeRef's undo stack (`Ctrl+Z`).
+
+## Data model
+
+- **Palette**: id, name, position in the list, source image (nullable), ordered points.
+- **SamplePoint**: palette, image item, position **relative to the full image** (x, y in 0–1),
+  order in the palette, cached color.
+- The color is always re-read from the image at the point's position (3×3 average); the cached
+  color is only used for export and for display when the image is missing.
+- Board-level: active palette id and the auto-extract toggle. App-level setting: color count.
+
+## Persistence (`.bee`, SQLite)
+
+- `USER_VERSION` 2 → 3, with a migration adding:
+  - `palettes (id, name, position, source_item_id → items.id ON DELETE SET NULL)`
+  - `palette_points (id, palette_id → palettes.id ON DELETE CASCADE,
+    item_id → items.id ON DELETE CASCADE, x REAL, y REAL, position INT, color TEXT)`
+  - board settings (active palette, auto-extract) stored in a `palette_meta` key/value table.
+- Palettes are written after items, so points can reference the items' `save_id`s.
+- Compatibility: upstream BeeRef opens version-3 files (it only migrates when the file version
+  is lower) and in-place saves leave the new tables intact; **Save As** from upstream drops
+  palettes. Documented in the README.
+
+### Edge cases
+
+- Image deleted → its points go with it (restored on undo).
+- Image cropped → points outside the crop are drawn greyed out and come back if uncropped.
+- Image flipped → the point follows the pixel, not the screen position.
+- Image with fewer distinct colors than requested, or tiny image → fewer points, no error.
+- Export failure (permissions, disk) → BeeRef's usual error dialog.
+
+## Extraction algorithm
+
+`extract(image: QImage, n: int) -> list[(x, y, color)]`, pure function:
+
+1. Downscale to ~64 px on the long side; skip pixels with alpha < 128.
+2. Convert sRGB → CIE Lab.
+3. k-means with deterministic k-means++ seeding (fixed seed), at most 20 iterations — the same
+   image always yields the same palette.
+4. For each cluster, pick the **real pixel** closest to the centroid (so every color and point
+   exists in the image); map it back to relative full-image coordinates.
+5. Sort clusters by size, largest first.
+
+Pure Python; add NumPy only if a 64 px extraction takes more than 150 ms.
+
+## `.aco` export
+
+`write_aco(path, colors)`: version-1 block followed by a version-2 block (names), RGB color
+space, each color named `#RRGGBB`. Default filename `<board> - <palette>.aco`.
+
+## Architecture
+
+New modules, each with one job:
+
+| Module | Responsibility |
+|---|---|
+| `beeref/palette/model.py` | `Palette`, `SamplePoint`; sampling a color from an image. No UI. |
+| `beeref/palette/extract.py` | `extract()` — pure function. |
+| `beeref/palette/aco.py` | `write_aco()` — pure function. |
+| `beeref/palette/commands.py` | Undoable commands: add/move/remove point, extract, create/rename/delete/reorder palette. |
+| `beeref/palette/marker.py` | Canvas item for one sample point (constant size, draggable). |
+| `beeref/widgets/palette_panel.py` | Side panel, swatches, collapse chevron. |
+
+Minimal changes to existing code: `scene.py` / `view.py` (click-to-extract and pick mode),
+`fileio/schema.py` + `fileio/sql.py` (tables, migration, read/write), `actions/actions.py` +
+`actions/menu_structure.py` (commands, shortcuts), `config/settings.py` (color count, panel
+state).
+
+## Testing
+
+pytest + pytest-qt, like the existing suite:
+
+- `extract`: synthetic images with 2, 3 and 6 flat colors; determinism; transparency ignored;
+  fewer distinct colors than `n`.
+- `write_aco`: byte-level check and round trip through a small test-only reader.
+- Persistence: save → reload keeps palettes and points; a version-2 file migrates; deleting an
+  image cascades its points.
+- Commands: undo/redo for each.
+- Panel: smoke test (create palette, active switch, collapse).
+- Manual: import an exported `.aco` in CSP under Wine.
+
+## Project and distribution
+
+- **Private, unpublished work.** Private GitHub repo `Dratharias/beeref-palette`, created as a
+  plain repo, not a GitHub fork, so it does not appear on upstream's fork list (forks of public
+  repos cannot be private anyway). Local clone at `~/Projects/github/beeref-palette`; upstream
+  kept as remote `upstream` for fetching only — its push URL is set to `DISABLED`. No pull
+  requests or issues upstream.
+- GPL-3 kept, original headers and copyright preserved; `CHANGELOG` notes the fork. The GPL
+  only requires sharing source with people the program is distributed to, so private personal
+  use creates no obligation to publish.
+- Name: **BeeRef Palette**, command `beeref-palette`.
+- Run with `uv` on a uv-managed Python 3.12 (system Python is 3.14; BeeRef requires < 3.13).
+  `Makefile`: `run`, `test`, `install` (installs the uv tool + a `.desktop` launcher that opens
+  `.bee` files). The Flathub BeeRef may stay installed alongside.
