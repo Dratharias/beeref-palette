@@ -7,6 +7,8 @@
   palette's extraction; saved with the palette (.bee schema v4),
   reused by Regenerate, removed with Clear region. Plain extraction
   respects the image crop, and sample points avoid color edges.
+* Merge with / Export merged .aco: combine palettes into a new palette
+  or a single swatch file.
 * M shows / hides the menu bar (View > Show Menu Bar).
 * Settings > Folders: default folder for boards (Open, Save As) and
   for .aco exports; both default to the Documents folder.

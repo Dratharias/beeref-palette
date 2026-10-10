@@ -166,3 +166,67 @@ def test_clear_region_menu(main_window):
     assert row.clear_region_action.isEnabled()
     row.clear_region_action.trigger()
     assert palette.source_region is None
+
+
+def two_rows(main_window):
+    extracted(main_window)
+    controller = main_window.view.palette_controller
+    first = controller.store.active
+    controller.rename(first, 'Billet')
+    controller.new_palette()
+    controller.add_point_at(
+        controller.store.palettes[0].points[0].item.sceneBoundingRect()
+        .center())
+    return controller, sidebar(main_window).panel.rows
+
+
+def show_menu(row):
+    row.menu_button.menu().aboutToShow.emit()
+
+
+def test_merge_menu_lists_other_palettes(main_window):
+    controller, rows = two_rows(main_window)
+    show_menu(rows[0])
+    labels = [a.text() for a in rows[0].merge_menu.actions()]
+    assert labels == ['Palette 2']
+    assert rows[0].merge_menu.isEnabled()
+
+
+def test_merge_menu_disabled_with_single_palette(main_window):
+    extracted(main_window)
+    row = sidebar(main_window).panel.rows[0]
+    show_menu(row)
+    assert not row.merge_menu.isEnabled()
+    assert not row.export_merged_menu.isEnabled()
+
+
+def test_merge_menu_creates_merged_palette(main_window):
+    controller, rows = two_rows(main_window)
+    show_menu(rows[0])
+    rows[0].merge_menu.actions()[0].trigger()
+    names = [p.name for p in controller.store.palettes]
+    assert names == ['Billet', 'Billet', 'Palette 2']
+    assert len(controller.store.palettes[1].points) == 4
+
+
+def test_all_palettes_entry_with_three_palettes(main_window):
+    controller, rows = two_rows(main_window)
+    controller.new_palette()
+    rows = sidebar(main_window).panel.rows
+    show_menu(rows[0])
+    labels = [a.text() for a in rows[0].merge_menu.actions()
+              if not a.isSeparator()]
+    assert labels == ['Palette 2', 'Palette 3', 'All palettes']
+
+
+def test_export_merged_menu(main_window, tmpdir):
+    controller, rows = two_rows(main_window)
+    show_menu(rows[0])
+    target = str(tmpdir.join('both.aco'))
+    with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
+               return_value=(target, '')) as dialog:
+        rows[0].export_merged_menu.actions()[0].trigger()
+    assert dialog.call_args.args[2].endswith('Untitled - Billet.aco')
+    from tests.palette.aco_reader import read_aco
+    assert len(read_aco(target)) == 4
+    assert len(controller.store.palettes) == 2

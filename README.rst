@@ -28,6 +28,12 @@ color palettes from reference images for painting in Clip Studio Paint.
   (Backspace removes a vertex, Esc cancels). Extraction then reads only
   that region, and Regenerate reuses it. Plain extraction respects the
   image's crop.
+- Merge palettes from the palette's ``⋯`` menu: **Merge with** creates a
+  new palette holding copies of both palettes' points (originals kept);
+  **Export merged .aco** writes one swatch file without creating a
+  palette. With three or more palettes, both offer **All palettes**.
+  The default name keeps the names you gave (``Billet`` + ``Palette 2``
+  → ``Billet``; ``Billet`` + ``Mood`` → ``Billet + Mood``).
 - Read-only inspector with Copy hex.
 - Export ``.aco``; in CSP: Color Set palette > Import color set.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.

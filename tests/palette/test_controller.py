@@ -255,3 +255,75 @@ def test_clear_region_is_undoable(view):
     assert not c.can_clear_region(palette)
     view.undo_stack.undo()
     assert palette.source_region == LEFT_THIRD
+
+
+# Merging
+
+def two_palettes(view):
+    c = view.palette_controller
+    item = add_image(view)
+    billet = c.new_palette()
+    c.extract_into_active(item)
+    c.rename(billet, 'Billet')
+    other = c.new_palette()
+    c.extract_into_active(item, LEFT_THIRD)
+    return c, item, billet, other
+
+
+def test_merged_name_prefers_user_named_palettes(view):
+    c, _, billet, other = two_palettes(view)
+    assert other.name == 'Palette 2'
+    assert c.merged_name([billet, other]) == 'Billet'
+    c.rename(other, 'Mood')
+    assert c.merged_name([billet, other]) == 'Billet + Mood'
+
+
+def test_merged_name_without_user_names_joins_defaults(view):
+    c, _, billet, other = two_palettes(view)
+    c.rename(billet, 'Palette 1')
+    assert c.merged_name([billet, other]) == 'Palette 1 + Palette 2'
+
+
+def test_merge_creates_palette_with_all_points(view):
+    c, item, billet, other = two_palettes(view)
+    merged = c.merge([billet, other])
+    assert merged.name == 'Billet'
+    assert c.store.palettes == [billet, merged, other]
+    assert c.store.active is merged
+    assert merged.colors() == billet.colors() + other.colors()
+    assert merged.source_item is None and merged.source_region is None
+    assert not c.can_regenerate(merged)
+
+
+def test_merged_points_are_copies(view):
+    c, item, billet, other = two_palettes(view)
+    merged = c.merge([billet, other])
+    assert all(p not in billet.points + other.points
+               for p in merged.points)
+    merged.points[0].x = 0.99
+    assert billet.points[0].x != 0.99
+
+
+def test_merge_is_one_undo_step(view):
+    c, item, billet, other = two_palettes(view)
+    c.merge([billet, other])
+    view.undo_stack.undo()
+    assert c.store.palettes == [billet, other]
+    assert c.store.active is other
+
+
+def test_export_merged_writes_all_colors(view, tmpdir):
+    c, item, billet, other = two_palettes(view)
+    path = str(tmpdir.join('both.aco'))
+    c.export_merged([billet, other], path)
+    colors = read_aco(path)
+    assert len(colors) == len(billet.points) + len(other.points)
+    assert c.store.palettes == [billet, other]
+
+
+def test_default_export_path_of_merge(view, settings, tmpdir):
+    settings.setValue('Save/palette_dir', str(tmpdir))
+    c, item, billet, other = two_palettes(view)
+    view.filename = '/x/Magma.bee'
+    assert c.default_export_path([billet, other]) == str(
+        tmpdir.join('Magma - Billet.aco'))

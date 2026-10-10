@@ -159,6 +159,9 @@ class PaletteRow(QtWidgets.QFrame):
             'Clear region', lambda: controller.clear_region(self.palette))
         menu.addAction('Export .aco…', self.export)
         menu.addSeparator()
+        self.merge_menu = menu.addMenu('Merge with')
+        self.export_merged_menu = menu.addMenu('Export merged .aco')
+        menu.addSeparator()
         menu.addAction('Delete', lambda: controller.delete(self.palette))
         menu.aboutToShow.connect(self.on_menu_about_to_show)
         self.menu_button.setMenu(menu)
@@ -178,6 +181,21 @@ class PaletteRow(QtWidgets.QFrame):
             self.controller.can_regenerate(self.palette))
         self.clear_region_action.setEnabled(
             self.controller.can_clear_region(self.palette))
+        self.fill_merge_menu(self.merge_menu, self.controller.merge)
+        self.fill_merge_menu(self.export_merged_menu, self.export_merged)
+
+    def fill_merge_menu(self, menu, callback):
+        """One entry per other palette, plus All palettes if 3 or more."""
+        menu.clear()
+        palettes = self.controller.store.palettes
+        others = [p for p in palettes if p is not self.palette]
+        menu.setEnabled(bool(others))
+        for other in others:
+            menu.addAction(other.name,
+                           lambda o=other: callback([self.palette, o]))
+        if len(others) > 1:
+            menu.addSeparator()
+            menu.addAction('All palettes', lambda: callback(list(palettes)))
 
     def start_rename(self):
         self.name_edit.setFocus()
@@ -190,16 +208,26 @@ class PaletteRow(QtWidgets.QFrame):
             self.name_edit.setText(self.palette.name)
 
     def export(self):
+        self.export_dialog(
+            self.palette,
+            lambda path: self.controller.export(self.palette, path))
+
+    def export_merged(self, palettes):
+        self.export_dialog(
+            palettes,
+            lambda path: self.controller.export_merged(palettes, path))
+
+    def export_dialog(self, palettes, write):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, 'Export palette',
-            self.controller.default_export_path(self.palette),
+            self.controller.default_export_path(palettes),
             'Photoshop swatches (*.aco)')
         if not path:
             return
         if not path.lower().endswith('.aco'):
             path += '.aco'
         try:
-            self.controller.export(self.palette, path)
+            write(path)
         except OSError as e:
             QtWidgets.QMessageBox.warning(
                 self, 'Problem exporting palette',

@@ -18,6 +18,7 @@
 import logging
 import os
 import os.path
+import re
 
 from PyQt6 import QtCore
 
@@ -172,22 +173,54 @@ class PaletteController:
 
     # Files
 
-    def default_export_name(self, palette):
+    def default_export_name(self, palettes):
+        """File name for one palette or a list of palettes merged."""
+        if isinstance(palettes, Palette):
+            name = palettes.name
+        else:
+            name = self.merged_name(palettes)
         board = self.view.filename
         board = (os.path.splitext(os.path.basename(board))[0]
                  if board else 'Untitled')
-        return f'{board} - {palette.name}.aco'
+        return f'{board} - {name}.aco'
 
-    def default_export_path(self, palette):
+    def default_export_path(self, palettes):
         folder = self.settings.valueOrDefault('Save/palette_dir')
         try:
             os.makedirs(folder, exist_ok=True)
         except OSError as e:
             logger.warning(f'Could not create {folder}: {e}')
-        return os.path.join(folder, self.default_export_name(palette))
+        return os.path.join(folder, self.default_export_name(palettes))
 
     def export(self, palette, path):
         write_aco(path, palette.colors())
+
+    def export_merged(self, palettes, path):
+        write_aco(path, [c for palette in palettes for c in palette.colors()])
+
+    # Merging
+
+    DEFAULT_NAME = re.compile(r'Palette \d+')
+
+    def merged_name(self, palettes):
+        """Names the user gave, or every name if none was renamed."""
+        named = [p.name for p in palettes
+                 if not self.DEFAULT_NAME.fullmatch(p.name)]
+        return ' + '.join(named or [p.name for p in palettes])
+
+    def merge(self, palettes):
+        """New palette holding copies of all points, after the first."""
+        points = []
+        for palette in palettes:
+            for p in palette.points:
+                point = SamplePoint(p.item, p.x, p.y, p.color)
+                point.missing_save_id = p.missing_save_id
+                points.append(point)
+        merged = Palette(self.merged_name(palettes), points)
+        index = self.store.palettes.index(palettes[0]) + 1
+        self.undo_stack.push(commands.CreatePalette(
+            self.store, merged, index, text='Merge palettes'))
+        return merged
 
     def restore_loaded(self):
         data = self.store.pending

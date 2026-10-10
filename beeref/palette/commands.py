@@ -20,14 +20,15 @@ from PyQt6 import QtGui
 
 class CreatePalette(QtGui.QUndoCommand):
 
-    def __init__(self, store, palette):
-        super().__init__('New palette')
+    def __init__(self, store, palette, index=None, text='New palette'):
+        super().__init__(text)
         self.store = store
         self.palette = palette
+        self.index = index
         self.previous_active = store.active
 
     def redo(self):
-        self.store.add(self.palette)
+        self.store.add(self.palette, self.index)
         self.store.set_active(self.palette)
 
     def undo(self):
