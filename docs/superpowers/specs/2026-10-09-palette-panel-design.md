@@ -165,6 +165,9 @@ pytest + pytest-qt, like the existing suite:
 
 ## Project and distribution
 
+- **Update 2026-10-09:** the repo was finally published as a **public** plain repo, with an
+  AI-generated-changes disclaimer in the README. The points below describe the original,
+  private plan.
 - **Private, unpublished work.** Private GitHub repo `Dratharias/beeref-palette`, created as a
   plain repo, not a GitHub fork, so it does not appear on upstream's fork list (forks of public
   repos cannot be private anyway). Local clone at `~/Projects/github/beeref-palette`; upstream

@@ -1,8 +1,19 @@
 BeeRef Palette
 ==============
 
-A private fork of `BeeRef <https://github.com/rbreu/beeref>`_ that builds
+A personal fork of `BeeRef <https://github.com/rbreu/beeref>`_ that builds
 color palettes from reference images for painting in Clip Studio Paint.
+
+.. warning::
+
+   **AI-generated changes.** Everything this fork adds on top of BeeRef
+   (the palette panel, lasso, extraction, ``.aco`` export, folder
+   settings, Space panning and related fixes) was written by an AI
+   coding assistant (Claude, by Anthropic) and reviewed by me through
+   testing and use, not line by line. Commits made with the assistant
+   carry a ``Co-Authored-By: Claude`` trailer. The original BeeRef code
+   and its authors are not involved in this fork; please do not report
+   issues with it to the BeeRef project.
 
 - Palette panel (``P``), collapsible with its chevron.
 - Auto-extract on click: distinct dominant colors (3–12) as draggable
