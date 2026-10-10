@@ -15,6 +15,9 @@ color palettes from reference images for painting in Clip Studio Paint.
    and its authors are not involved in this fork; please do not report
    issues with it to the BeeRef project.
 
+- Space navigation: hold ``Space`` and drag with the mouse or pen to pan
+  the board, like in Clip Studio Paint. Works while drawing a lasso or
+  adding points; the tool resumes when you release.
 - Palette panel (``P``), collapsible with its chevron.
 - Auto-extract on click: distinct dominant colors (3–12) as draggable
   sample points; Regenerate re-extracts from the source image.
@@ -26,7 +29,6 @@ color palettes from reference images for painting in Clip Studio Paint.
   image's crop.
 - Read-only inspector with Copy hex.
 - Export ``.aco``; in CSP: Color Set palette > Import color set.
-- Hold Space and drag to pan the board.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
 .. image:: images/palette-screenshot.png
