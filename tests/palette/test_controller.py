@@ -195,3 +195,63 @@ def test_wobbly_click_extraction_is_the_only_undo_step(qtbot, view):
     assert [stack.text(i) for i in range(stack.count())] == ['Extract palette']
     assert item.pos() == QtCore.QPointF(0, 0)
     item.setSelected(False)
+
+
+LEFT_THIRD = [(0, 0), (0.33, 0), (0.33, 1), (0, 1)]
+
+
+def rgbs(palette):
+    return sorted((c.red(), c.green(), c.blue()) for c in palette.colors())
+
+
+def test_extract_into_active_with_region(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item, LEFT_THIRD)
+    palette = c.store.active
+    assert rgbs(palette) == [RED]
+    assert palette.source_region == LEFT_THIRD
+
+
+def test_regenerate_reuses_region(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item, LEFT_THIRD)
+    palette = c.store.active
+    palette.points = []
+    assert c.regenerate(palette)
+    assert rgbs(palette) == [RED]
+    assert palette.source_region == LEFT_THIRD
+
+
+def test_plain_extraction_respects_crop(view):
+    c = view.palette_controller
+    item = add_image(view)
+    # Keep only the right third (blue)
+    item.crop = QtCore.QRectF(40, 0, 20, 60)
+    c.extract_into_active(item)
+    palette = c.store.active
+    assert rgbs(palette) == [BLUE]
+    assert palette.source_region is None
+
+
+def test_regenerate_follows_new_crop(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item)
+    item.crop = QtCore.QRectF(0, 0, 20, 60)
+    c.regenerate(c.store.active)
+    assert rgbs(c.store.active) == [RED]
+
+
+def test_clear_region_is_undoable(view):
+    c = view.palette_controller
+    item = add_image(view)
+    c.extract_into_active(item, LEFT_THIRD)
+    palette = c.store.active
+    assert c.can_clear_region(palette)
+    c.clear_region(palette)
+    assert palette.source_region is None
+    assert not c.can_clear_region(palette)
+    view.undo_stack.undo()
+    assert palette.source_region == LEFT_THIRD

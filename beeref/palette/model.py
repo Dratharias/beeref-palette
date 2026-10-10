@@ -92,6 +92,8 @@ class Palette:
         self.name = name
         self.points = list(points or [])
         self.source_item = source_item
+        # Polygon (relative x, y) the last extraction was limited to
+        self.source_region = None
         self.missing_source_save_id = None
 
     def colors(self):
@@ -188,6 +190,9 @@ class PaletteStore(QtCore.QObject):
                               items_by_save_id.get(source_id))
             if source_id in unloaded_save_ids:
                 palette.missing_source_save_id = source_id
+            region = pdata.get('source_region')
+            if region:
+                palette.source_region = [tuple(v) for v in region]
             self.palettes.append(palette)
         active = data.get('active')
         if active is not None and 0 <= active < len(self.palettes):

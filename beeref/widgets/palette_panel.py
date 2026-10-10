@@ -155,6 +155,8 @@ class PaletteRow(QtWidgets.QFrame):
         menu.addAction('Rename', self.start_rename)
         self.regenerate_action = menu.addAction(
             'Regenerate', lambda: controller.regenerate(self.palette))
+        self.clear_region_action = menu.addAction(
+            'Clear region', lambda: controller.clear_region(self.palette))
         menu.addAction('Export .aco…', self.export)
         menu.addSeparator()
         menu.addAction('Delete', lambda: controller.delete(self.palette))
@@ -174,6 +176,8 @@ class PaletteRow(QtWidgets.QFrame):
     def on_menu_about_to_show(self):
         self.regenerate_action.setEnabled(
             self.controller.can_regenerate(self.palette))
+        self.clear_region_action.setEnabled(
+            self.controller.can_clear_region(self.palette))
 
     def start_rename(self):
         self.name_edit.setFocus()

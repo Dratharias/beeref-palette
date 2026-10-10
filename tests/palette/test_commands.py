@@ -3,7 +3,7 @@ from PyQt6 import QtGui
 from beeref.items import BeePixmapItem
 from beeref.palette.commands import (
     AddPoint, CreatePalette, DeletePalette, MovePoint, RemovePoint,
-    RenamePalette, ReorderPoint, ReplacePoints)
+    RenamePalette, ReorderPoint, ReplacePoints, SetRegion)
 from beeref.palette.model import Palette, PaletteStore, SamplePoint
 from tests.palette.helpers import stripes
 
@@ -87,3 +87,35 @@ def test_reorder_point(view):
     assert palette.points == [b, c, a]
     stack.undo()
     assert palette.points == [a, b, c]
+
+
+def test_replace_points_sets_and_restores_region(view):
+    store, stack, item = setup(view)
+    palette = Palette('A')
+    palette.source_region = [(0, 0), (1, 0), (1, 1)]
+    store.add(palette)
+    region = [(0, 0), (0.5, 0), (0.5, 1)]
+    stack.push(ReplacePoints(store, palette, [], item, region))
+    assert palette.source_region == region
+    stack.undo()
+    assert palette.source_region == [(0, 0), (1, 0), (1, 1)]
+
+
+def test_replace_points_without_region_clears_it(view):
+    store, stack, item = setup(view)
+    palette = Palette('A')
+    palette.source_region = [(0, 0), (1, 0), (1, 1)]
+    store.add(palette)
+    stack.push(ReplacePoints(store, palette, [], item))
+    assert palette.source_region is None
+
+
+def test_set_region(view):
+    store, stack, _ = setup(view)
+    palette = Palette('A')
+    palette.source_region = [(0, 0), (1, 0), (1, 1)]
+    store.add(palette)
+    stack.push(SetRegion(store, palette, None))
+    assert palette.source_region is None
+    stack.undo()
+    assert palette.source_region == [(0, 0), (1, 0), (1, 1)]

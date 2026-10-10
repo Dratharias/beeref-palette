@@ -466,4 +466,11 @@ actions = ActionList([
         callback='on_action_palette_add_point',
         group='active_when_items_in_scene',
     ),
+    Action(
+        id='palette_lasso',
+        text='&Lasso Region',
+        shortcuts=['L'],
+        callback='on_action_palette_lasso',
+        group='active_when_items_in_scene',
+    ),
 ])

@@ -32,6 +32,7 @@ from beeref import widgets
 from beeref.items import BeePixmapItem, BeeTextItem
 from beeref.main_controls import MainControlsMixin
 from beeref.palette.controller import PaletteController
+from beeref.palette.lasso import Lasso
 from beeref.palette.overlay import PaletteOverlay
 from beeref.scene import BeeGraphicsScene
 from beeref.utils import get_file_extension_from_format, qcolor_to_hex
@@ -50,6 +51,7 @@ class BeeGraphicsView(MainControlsMixin,
     SAMPLE_COLOR_MODE = 3
     PICK_POINT_MODE = 4
     DRAG_POINT_MODE = 5
+    LASSO_MODE = 6
 
     def __init__(self, app, parent=None):
         super().__init__(parent)
@@ -75,6 +77,7 @@ class BeeGraphicsView(MainControlsMixin,
         self.active_mode = None
         self.space_held = False
         self.pan_resume = None
+        self.lasso = None
 
         self.scene = BeeGraphicsScene(self.undo_stack)
         self.scene.changed.connect(self.on_scene_changed)
@@ -118,6 +121,7 @@ class BeeGraphicsView(MainControlsMixin,
         self.scene.cancel_active_modes()
         self.cancel_sample_color_mode()
         self.active_mode = None
+        self.cancel_lasso()
 
     def cancel_sample_color_mode(self):
         logger.debug('Cancel sample color mode')
@@ -429,6 +433,61 @@ class BeeGraphicsView(MainControlsMixin,
 
     def on_action_palette_add_point(self):
         self.enter_pick_point_mode()
+
+    def on_action_palette_lasso(self):
+        self.cancel_active_modes()
+        logger.debug('Entering lasso mode')
+        self.lasso = Lasso()
+        self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        self.active_mode = self.LASSO_MODE
+
+    def cancel_lasso(self):
+        if self.lasso is not None:
+            self.lasso = None
+            if self.active_mode == self.LASSO_MODE:
+                self.active_mode = None
+            self.viewport().unsetCursor()
+            self.viewport().update()
+
+    def finish_lasso(self):
+        lasso = self.lasso
+        region = lasso.polygon()
+        self.cancel_lasso()
+        if region and lasso.is_available:
+            self.palette_controller.extract_into_active(lasso.item, region)
+
+    def lasso_add(self, scene_pos, view_pos):
+        lasso = self.lasso
+        lasso.add(self.palette_controller.relative_pos(lasso.item, scene_pos))
+        lasso.last_drag_pos = QtCore.QPointF(view_pos)
+        self.viewport().update()
+
+    def lasso_mouse_press(self, event):
+        event.accept()
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        lasso = self.lasso
+        scene_pos = self.mapToScene(event.pos())
+        if lasso.item is None:
+            lasso.item = self.palette_controller.image_at(scene_pos)
+            if lasso.item is None:
+                return
+        elif lasso.near_first(self, event.position()):
+            self.finish_lasso()
+            return
+        self.lasso_add(scene_pos, event.position())
+        lasso.dragging = True
+
+    def lasso_mouse_move(self, event):
+        lasso = self.lasso
+        lasso.hover = self.mapToScene(event.pos())
+        if lasso.dragging and lasso.item is not None:
+            delta = event.position() - lasso.last_drag_pos
+            if (delta.x() ** 2 + delta.y() ** 2
+                    >= lasso.FREEHAND_STEP ** 2):
+                self.lasso_add(lasso.hover, event.position())
+        self.viewport().update()
+        event.accept()
 
     def enter_pick_point_mode(self):
         self.cancel_active_modes()
@@ -924,6 +983,10 @@ class BeeGraphicsView(MainControlsMixin,
             event.accept()
             return
 
+        if self.active_mode == self.LASSO_MODE:
+            self.lasso_mouse_press(event)
+            return
+
         if self.active_mode == self.PICK_POINT_MODE:
             if event.button() == Qt.MouseButton.LeftButton:
                 self.palette_controller.add_point_at(
@@ -970,7 +1033,20 @@ class BeeGraphicsView(MainControlsMixin,
         # problem. It works with other cursors.
         event.accept()
 
+    def mouseDoubleClickEvent(self, event):
+        if self.active_mode == self.LASSO_MODE:
+            if (self.lasso.item is not None
+                    and event.button() == Qt.MouseButton.LeftButton):
+                self.lasso_add(self.mapToScene(event.pos()), event.position())
+                self.finish_lasso()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def mouseMoveEvent(self, event):
+        if self.active_mode == self.LASSO_MODE:
+            self.lasso_mouse_move(event)
+            return
         if self.active_mode == self.DRAG_POINT_MODE:
             self.palette_controller.drag_point_to(
                 self.drag_point, self.mapToScene(event.pos()))
@@ -1007,6 +1083,10 @@ class BeeGraphicsView(MainControlsMixin,
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if self.active_mode == self.LASSO_MODE:
+            self.lasso.dragging = False
+            event.accept()
+            return
         if self.active_mode == self.DRAG_POINT_MODE:
             self.palette_controller.finish_point_drag(
                 self.drag_point, self.drag_point_start)
@@ -1042,6 +1122,20 @@ class BeeGraphicsView(MainControlsMixin,
             return
         if event.key() == Qt.Key.Key_Space:
             self.space_held = True
+            event.accept()
+            return
+        if self.active_mode == self.LASSO_MODE:
+            key = event.key()
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.finish_lasso()
+            elif key == Qt.Key.Key_Backspace:
+                self.lasso.pop()
+                self.viewport().update()
+            elif key == Qt.Key.Key_Escape:
+                self.cancel_lasso()
+            else:
+                super().keyPressEvent(event)
+                return
             event.accept()
             return
         if self.active_mode in (self.SAMPLE_COLOR_MODE, self.PICK_POINT_MODE):

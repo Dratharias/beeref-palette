@@ -122,6 +122,7 @@ menu_structure = [
         'items': [
             'palette_new',
             'palette_add_point',
+            'palette_lasso',
         ],
     },
     {

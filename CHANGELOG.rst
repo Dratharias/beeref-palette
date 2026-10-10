@@ -3,6 +3,10 @@
 
 * Fork: BeeRef Palette — palette panel, distinct-color extraction,
   sample points, color inspector, .aco export, .bee schema v3.
+* Lasso region (L): polygonal or freehand region that limits a
+  palette's extraction; saved with the palette (.bee schema v4),
+  reused by Regenerate, removed with Clear region. Plain extraction
+  respects the image crop, and sample points avoid color edges.
 * Settings > Folders: default folder for boards (Open, Save As) and
   for .aco exports; both default to the Documents folder.
 * Hold Space and drag with the left button (or pen) to pan, like in

@@ -16,7 +16,7 @@
 """Dominant, visually distinct colors of an image."""
 
 import numpy as np
-from PyQt6 import QtGui
+from PyQt6 import QtCore, QtGui
 from PyQt6.QtCore import Qt
 
 
@@ -79,22 +79,66 @@ def _kmeans(points, k, rng):
     return centroids, labels
 
 
-def extract(image, n, min_delta_e=MIN_DELTA_E):
+def _region_bounds(region, width, height):
+    """Pixel rect bounding a relative polygon, clipped to the image."""
+    xs = [min(max(x, 0.0), 1.0) * width for x, _ in region]
+    ys = [min(max(y, 0.0), 1.0) * height for _, y in region]
+    left, top = int(min(xs)), int(min(ys))
+    right = min(int(np.ceil(max(xs))), width)
+    bottom = min(int(np.ceil(max(ys))), height)
+    return QtCore.QRect(left, top, right - left, bottom - top)
+
+
+def _region_mask(region, bounds, image_size, w, h):
+    """Boolean (h, w) array: which pixels of the scaled crop are inside."""
+    sx = w / bounds.width()
+    sy = h / bounds.height()
+    polygon = QtGui.QPolygonF([
+        QtCore.QPointF((x * image_size.width() - bounds.x()) * sx,
+                       (y * image_size.height() - bounds.y()) * sy)
+        for x, y in region])
+    mask = QtGui.QImage(w, h, QtGui.QImage.Format.Format_Grayscale8)
+    mask.fill(0)
+    painter = QtGui.QPainter(mask)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QtGui.QColor(255, 255, 255))
+    painter.drawPolygon(polygon)
+    painter.end()
+    ptr = mask.constBits()
+    ptr.setsize(mask.sizeInBytes())
+    rows = np.frombuffer(ptr, np.uint8).reshape(h, mask.bytesPerLine())
+    return rows[:, :w] > 127
+
+
+def extract(image, n, min_delta_e=MIN_DELTA_E, region=None):
     """Return up to ``n`` distinct dominant colors of ``image``.
 
     Each entry is ``(x, y, color)`` with x/y relative to the image (0–1)
     and pointing at a real pixel of that color; largest cluster first.
+    ``region`` optionally limits extraction to a polygon given as
+    relative (x, y) vertices.
     """
     if image.isNull() or n < 1:
         return []
-    small = image
-    if max(image.width(), image.height()) > MAX_SIDE:
-        small = image.scaled(MAX_SIDE, MAX_SIDE,
+    bounds = QtCore.QRect(0, 0, image.width(), image.height())
+    if region is not None:
+        if len(region) < 3:
+            return []
+        bounds = _region_bounds(region, image.width(), image.height())
+        if bounds.width() < 1 or bounds.height() < 1:
+            return []
+    # Crop first so that a small region keeps its detail after scaling
+    small = image.copy(bounds) if region is not None else image
+    if max(small.width(), small.height()) > MAX_SIDE:
+        small = small.scaled(MAX_SIDE, MAX_SIDE,
                              Qt.AspectRatioMode.KeepAspectRatio,
                              Qt.TransformationMode.FastTransformation)
     rgba = _rgba_array(small)
     h, w = rgba.shape[:2]
-    ys, xs = np.nonzero(rgba[..., 3] >= 128)
+    keep = rgba[..., 3] >= 128
+    if region is not None:
+        keep &= _region_mask(region, bounds, image.size(), w, h)
+    ys, xs = np.nonzero(keep)
     if len(xs) == 0:
         return []
     rgb = rgba[ys, xs, :3]
@@ -113,11 +157,25 @@ def extract(image, n, min_delta_e=MIN_DELTA_E):
             if len(kept) == n:
                 break
 
+    # Same-cluster neighbour count of each pixel: points prefer the inside
+    # of a color area, so the 3×3 swatch average is not a mix of colors.
+    grid = np.full((h + 2, w + 2), -1)
+    grid[ys + 1, xs + 1] = labels
+    same = sum((grid[1 + dy:h + 1 + dy, 1 + dx:w + 1 + dx] == grid[1:-1, 1:-1])
+               for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+               if dx or dy)[ys, xs]
+
     result = []
     for i in kept:
         members = np.nonzero(labels == i)[0]
-        best = members[np.argmin(((lab[members] - centroids[i]) ** 2).sum(-1))]
+        dist = ((lab[members] - centroids[i]) ** 2).sum(-1)
+        # Among pixels within ΔE 5 of the closest, take the most surrounded
+        close = members[dist <= dist.min() + 25]
+        close_dist = dist[dist <= dist.min() + 25]
+        best = close[np.lexsort((close_dist, -same[close]))[0]]
         r, g, b = (int(v) for v in rgb[best])
-        result.append(((xs[best] + 0.5) / w, (ys[best] + 0.5) / h,
+        x = (bounds.x() + (xs[best] + 0.5) * bounds.width() / w)
+        y = (bounds.y() + (ys[best] + 0.5) * bounds.height() / h)
+        result.append((x / image.width(), y / image.height(),
                        QtGui.QColor(r, g, b)))
     return result

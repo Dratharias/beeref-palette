@@ -1,4 +1,4 @@
-USER_VERSION = 3
+USER_VERSION = 4
 APPLICATION_ID = 2060242126
 
 
@@ -65,7 +65,12 @@ SCHEMA = [
     )
     """,
 ]
-SCHEMA = SCHEMA + PALETTE_SCHEMA
+# Version 4: lasso region (JSON list of relative [x, y]) of a palette's
+# last extraction
+PALETTE_REGION_SCHEMA = [
+    "ALTER TABLE palettes ADD COLUMN source_region TEXT",
+]
+SCHEMA = SCHEMA + PALETTE_SCHEMA + PALETTE_REGION_SCHEMA
 
 
 MIGRATIONS = {
@@ -74,4 +79,5 @@ MIGRATIONS = {
         "UPDATE items SET data = json_object('filename', filename)",
     ],
     3: PALETTE_SCHEMA,
+    4: PALETTE_REGION_SCHEMA,
 }

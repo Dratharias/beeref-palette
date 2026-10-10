@@ -72,6 +72,15 @@ def handle_sqlite_errors(func):
     return wrapper
 
 
+def _parse_region(text):
+    """Relative polygon from its JSON column, or None if unusable."""
+    try:
+        region = [(float(x), float(y)) for x, y in json.loads(text or 'null')]
+    except (TypeError, ValueError):
+        return None
+    return region if len(region) >= 3 else None
+
+
 class SQLiteIO:
 
     def __init__(self, filename, scene, create_new=False, readonly=False,
@@ -146,7 +155,13 @@ class SQLiteIO:
         for i in range(version, USER_VERSION):
             logger.debug(f'Migrating from version {i} to {i + 1}...')
             for migration in MIGRATIONS[i + 1]:
-                self.ex(migration)
+                try:
+                    self.ex(migration)
+                except sqlite3.OperationalError as e:
+                    # File stamped with an older version than its tables
+                    if 'duplicate column' not in str(e):
+                        raise
+                    logger.debug(f'Skipping migration: {e}')
         self.write_meta()
         self.connection.commit()
         logger.debug('Migration finished')
@@ -276,7 +291,8 @@ class SQLiteIO:
             # trust a reference whose image size still matches.
             palettes = self.fetchall(
                 'SELECT p.id, p.name, CASE WHEN s.sz IS p.source_item_sz '
-                'THEN p.source_item_id END '
+                'THEN p.source_item_id END, '
+                'CASE WHEN s.sz IS p.source_item_sz THEN p.source_region END '
                 'FROM palettes p '
                 'LEFT JOIN sqlar s ON s.item_id = p.source_item_id '
                 'ORDER BY p.position')
@@ -298,8 +314,9 @@ class SQLiteIO:
         return {
             'palettes': [{'name': name,
                           'source_save_id': source,
+                          'source_region': _parse_region(region),
                           'points': by_palette.get(pid, [])}
-                         for pid, name, source in palettes],
+                         for pid, name, source, region in palettes],
             'active': int(active) if active.isdigit() else None,
             'auto_extract': meta.get('auto_extract') == '1',
         }
@@ -319,10 +336,14 @@ class SQLiteIO:
                          else palette.missing_source_save_id)
             if source_id not in sizes:
                 source_id = None
+            region = (json.dumps(palette.source_region)
+                      if source_id is not None and palette.source_region
+                      else None)
             self.ex('INSERT INTO palettes '
-                    '(name, position, source_item_id, source_item_sz) '
-                    'VALUES (?, ?, ?, ?)',
-                    (palette.name, position, source_id, sizes.get(source_id)))
+                    '(name, position, source_item_id, source_item_sz, '
+                    'source_region) VALUES (?, ?, ?, ?, ?)',
+                    (palette.name, position, source_id, sizes.get(source_id),
+                     region))
             palette_id = self.cursor.lastrowid
             rows = []
             for p in palette.points:

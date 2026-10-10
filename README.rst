@@ -8,12 +8,17 @@ color palettes from reference images for painting in Clip Studio Paint.
 - Auto-extract on click: distinct dominant colors (3–12) as draggable
   sample points; Regenerate re-extracts from the source image.
 - Add points by hand (``A`` or the ``+`` swatch), right-click to remove.
+- Lasso region (``L``): click vertices or drag freehand on one image;
+  close with a click on the first vertex, a double-click or Enter
+  (Backspace removes a vertex, Esc cancels). Extraction then reads only
+  that region, and Regenerate reuses it. Plain extraction respects the
+  image's crop.
 - Read-only inspector with Copy hex.
 - Export ``.aco``; in CSP: Color Set palette > Import color set.
 - Hold Space and drag to pan the board.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
-Compatibility: boards are saved as ``.bee`` schema v3. Upstream BeeRef
+Compatibility: boards are saved as ``.bee`` schema v4. Upstream BeeRef
 opens them and keeps palettes on a normal save, but drops them on Save As.
 
 Run with ``make run``, test with ``make test``, install with

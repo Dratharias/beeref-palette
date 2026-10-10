@@ -33,8 +33,8 @@ def reload(view, filename):
     return view.scene.palettes
 
 
-def test_schema_version_is_3():
-    assert schema.USER_VERSION == 3
+def test_schema_version_is_4():
+    assert schema.USER_VERSION == 4
 
 
 def test_round_trip(view, tmpfile):
@@ -136,3 +136,40 @@ def test_points_on_unreadable_image_survive_a_save(view, tmpfile):
     rows = con.execute('SELECT item_id FROM palette_points').fetchall()
     con.close()
     assert (b.save_id,) in rows
+
+
+TRIANGLE = [(0.1, 0.1), (0.9, 0.2), (0.5, 0.9)]
+
+
+def test_region_round_trip(view, tmpfile):
+    a, _ = board(view)
+    view.scene.palettes.palettes[0].source_region = TRIANGLE
+    save_bee(tmpfile, view.scene, create_new=True)
+    store = reload(view, tmpfile)
+    assert store.palettes[0].source_region == TRIANGLE
+    assert store.palettes[1].source_region is None
+
+
+def test_region_dropped_with_its_source_image(view, tmpfile):
+    a, _ = board(view)
+    view.scene.palettes.palettes[0].source_region = TRIANGLE
+    view.scene.removeItem(a)
+    save_bee(tmpfile, view.scene, create_new=True)
+    store = reload(view, tmpfile)
+    assert store.palettes[0].source_region is None
+
+
+def test_version_3_file_migrates_and_keeps_palettes(view, tmpfile):
+    a, _ = board(view)
+    save_bee(tmpfile, view.scene, create_new=True)
+    # Turn the file back into a version 3 file (no region column)
+    con = sqlite3.connect(tmpfile)
+    con.execute('ALTER TABLE palettes DROP COLUMN source_region')
+    con.execute('PRAGMA user_version=3')
+    con.commit()
+    con.close()
+    store = reload(view, tmpfile)
+    assert [p.name for p in store.palettes] == ['Lava', 'Mood']
+    assert len(store.palettes[0].points) == 2
+    con = sqlite3.connect(tmpfile)
+    assert con.execute('PRAGMA user_version').fetchone()[0] == 4

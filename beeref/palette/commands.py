@@ -71,16 +71,18 @@ class RenamePalette(QtGui.QUndoCommand):
 
 class ReplacePoints(QtGui.QUndoCommand):
 
-    def __init__(self, store, palette, points, source_item):
+    def __init__(self, store, palette, points, source_item, region=None):
         super().__init__('Extract palette')
         self.store = store
         self.palette = palette
-        self.new = (list(points), source_item)
-        self.old = (list(palette.points), palette.source_item)
+        self.new = (list(points), source_item, region)
+        self.old = (list(palette.points), palette.source_item,
+                    palette.source_region)
 
     def _apply(self, state):
         self.palette.points = list(state[0])
         self.palette.source_item = state[1]
+        self.palette.source_region = state[2]
         self.store.selected_point = None
         self.store.notify()
 
@@ -89,6 +91,24 @@ class ReplacePoints(QtGui.QUndoCommand):
 
     def undo(self):
         self._apply(self.old)
+
+
+class SetRegion(QtGui.QUndoCommand):
+
+    def __init__(self, store, palette, region):
+        super().__init__('Clear palette region')
+        self.store = store
+        self.palette = palette
+        self.new = region
+        self.old = palette.source_region
+
+    def redo(self):
+        self.palette.source_region = self.new
+        self.store.notify()
+
+    def undo(self):
+        self.palette.source_region = self.old
+        self.store.notify()
 
 
 class AddPoint(QtGui.QUndoCommand):

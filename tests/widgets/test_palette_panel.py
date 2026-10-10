@@ -154,3 +154,15 @@ def test_panel_buttons_never_take_keyboard_focus(main_window):
     assert widgets
     for widget in widgets:
         assert widget.focusPolicy() == Qt.FocusPolicy.NoFocus, widget
+
+
+def test_clear_region_menu(main_window):
+    palette = extracted(main_window)
+    row = sidebar(main_window).panel.rows[0]
+    row.menu_button.menu().aboutToShow.emit()
+    assert not row.clear_region_action.isEnabled()
+    palette.source_region = [(0, 0), (1, 0), (1, 1)]
+    row.menu_button.menu().aboutToShow.emit()
+    assert row.clear_region_action.isEnabled()
+    row.clear_region_action.trigger()
+    assert palette.source_region is None

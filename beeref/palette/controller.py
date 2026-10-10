@@ -19,6 +19,8 @@ import logging
 import os
 import os.path
 
+from PyQt6 import QtCore
+
 from beeref.items import BeeErrorItem
 from beeref.palette import commands
 from beeref.palette.aco import write_aco
@@ -67,17 +69,32 @@ class PaletteController:
 
     # Extraction
 
-    def extract_points(self, item):
-        return [SamplePoint(item, x, y)
-                for x, y, _ in extract(item_image(item), self.color_count())]
+    @staticmethod
+    def crop_region(item):
+        """The item's crop as a relative polygon, or None if uncropped."""
+        size = item.pixmap().size()
+        full = QtCore.QRectF(0, 0, size.width(), size.height())
+        crop = item.crop.intersected(full)
+        if crop == full or full.isEmpty():
+            return None
+        left, right = crop.left() / full.width(), crop.right() / full.width()
+        top, bottom = crop.top() / full.height(), crop.bottom() / full.height()
+        return [(left, top), (right, top), (right, bottom), (left, bottom)]
 
-    def extract_into_active(self, item):
-        points = self.extract_points(item)
+    def extract_points(self, item, region=None):
+        """Extract from ``region`` (relative polygon), else the crop."""
+        region = region or self.crop_region(item)
+        return [SamplePoint(item, x, y)
+                for x, y, _ in extract(item_image(item), self.color_count(),
+                                       region=region)]
+
+    def extract_into_active(self, item, region=None):
+        points = self.extract_points(item, region)
         self.undo_stack.beginMacro('Extract palette')
         if self.store.active is None:
             self.new_palette()
         self.undo_stack.push(commands.ReplacePoints(
-            self.store, self.store.active, points, item))
+            self.store, self.store.active, points, item, region))
         self.undo_stack.endMacro()
 
     def on_image_clicked(self, item):
@@ -91,10 +108,19 @@ class PaletteController:
     def regenerate(self, palette):
         if not self.can_regenerate(palette):
             return False
+        item, region = palette.source_item, palette.source_region
         self.undo_stack.push(commands.ReplacePoints(
-            self.store, palette, self.extract_points(palette.source_item),
-            palette.source_item))
+            self.store, palette, self.extract_points(item, region),
+            item, region))
         return True
+
+    def can_clear_region(self, palette):
+        return bool(palette.source_region)
+
+    def clear_region(self, palette):
+        if self.can_clear_region(palette):
+            self.undo_stack.push(
+                commands.SetRegion(self.store, palette, None))
 
     # Points
 
