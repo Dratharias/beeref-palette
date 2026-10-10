@@ -29,6 +29,10 @@ color palettes from reference images for painting in Clip Studio Paint.
 - Hold Space and drag to pan the board.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
+.. image:: images/palette-screenshot.png
+   :alt: BeeRef Palette with a lasso region on a molten steel reference
+         and four palettes in the side panel
+
 Compatibility: boards are saved as ``.bee`` schema v4. Upstream BeeRef
 opens them and keeps palettes on a normal save, but drops them on Save As.
 
