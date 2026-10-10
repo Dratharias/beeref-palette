@@ -70,6 +70,26 @@ class SwatchStrip(QtWidgets.QWidget):
                 return i
         return None
 
+    def is_picking(self):
+        """Whether the view waits for a click to add a point here."""
+        view = self.controller.view
+        return (view.active_mode == view.PICK_POINT_MODE
+                and self.controller.store.active is self.palette)
+
+    def tooltip_at(self, pos):
+        index = self.index_at(pos)
+        if index is None:
+            return None
+        if index == len(self.palette.points):
+            return ('Add a color point: click here, then click on an image\n'
+                    '(Esc cancels)')
+        c = self.palette.points[index].color
+        return (f'{c.name().upper()}\n'
+                f'RGB {c.red()}, {c.green()}, {c.blue()}\n'
+                f'HSV {max(c.hsvHue(), 0)}°, '
+                f'{round(c.hsvSaturationF() * 100)}%, '
+                f'{round(c.valueF() * 100)}%')
+
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
@@ -87,24 +107,23 @@ class SwatchStrip(QtWidgets.QWidget):
             painter.drawRoundedRect(rect, 4, 4)
         plus = QtCore.QRectF(self.cell_rect(len(self.palette.points)))
         plus = plus.adjusted(1, 1, -1, -1)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QtGui.QPen(QtGui.QColor(160, 160, 160), 1,
-                                  Qt.PenStyle.DashLine))
+        if self.is_picking():
+            fill = _highlight()
+            fill.setAlpha(90)
+            painter.setBrush(fill)
+            painter.setPen(QtGui.QPen(_highlight(), 2))
+        else:
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QtGui.QPen(QtGui.QColor(160, 160, 160), 1,
+                                      Qt.PenStyle.DashLine))
         painter.drawRoundedRect(plus, 4, 4)
         painter.drawText(plus, Qt.AlignmentFlag.AlignCenter, '+')
 
     def event(self, event):
         if event.type() == QtCore.QEvent.Type.ToolTip:
-            index = self.index_at(event.pos())
-            if index is not None and index < len(self.palette.points):
-                c = self.palette.points[index].color
-                QtWidgets.QToolTip.showText(
-                    event.globalPos(),
-                    f'{c.name().upper()}\n'
-                    f'RGB {c.red()}, {c.green()}, {c.blue()}\n'
-                    f'HSV {max(c.hsvHue(), 0)}°, '
-                    f'{round(c.hsvSaturationF() * 100)}%, '
-                    f'{round(c.valueF() * 100)}%', self)
+            text = self.tooltip_at(event.pos())
+            if text:
+                QtWidgets.QToolTip.showText(event.globalPos(), text, self)
             else:
                 QtWidgets.QToolTip.hideText()
             return True
@@ -124,6 +143,14 @@ class SwatchStrip(QtWidgets.QWidget):
             return
         self.controller.store.select_point(point)
         self._drag_from = index
+
+    def mouseMoveEvent(self, event):
+        if self.index_at(event.position().toPoint()) == len(
+                self.palette.points):
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.unsetCursor()
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if self._drag_from is None:
@@ -320,6 +347,10 @@ class PalettePanel(QtWidgets.QWidget):
 
 class PaletteSidebar(QtWidgets.QWidget):
     """The palette panel plus a thin chevron strip that collapses it."""
+
+    def refresh_swatches(self):
+        for strip in self.findChildren(SwatchStrip):
+            strip.update()
 
     def __init__(self, controller, settings, parent=None):
         super().__init__(parent)

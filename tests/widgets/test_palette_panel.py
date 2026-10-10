@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtTest import QTest
 
 from beeref.items import BeePixmapItem
 from tests.palette.helpers import stripes
@@ -230,3 +231,48 @@ def test_export_merged_menu(main_window, tmpdir):
     from tests.palette.aco_reader import read_aco
     assert len(read_aco(target)) == 4
     assert len(controller.store.palettes) == 2
+
+
+def test_plus_swatch_shows_it_is_waiting_for_a_click(main_window):
+    extracted(main_window)
+    view = main_window.view
+    strip = sidebar(main_window).panel.rows[0].strip
+    assert not strip.is_picking()
+    plus = strip.cell_rect(len(strip.palette.points)).center()
+    with patch('beeref.widgets.BeeNotification') as notification:
+        QTest.mouseClick(strip, Qt.MouseButton.LeftButton, pos=plus)
+    assert view.active_mode == view.PICK_POINT_MODE
+    assert strip.is_picking()
+    notification.assert_called_once()
+    view.cancel_active_modes()
+    assert not strip.is_picking()
+
+
+def test_plus_swatch_tooltip_and_cursor(main_window):
+    extracted(main_window)
+    strip = sidebar(main_window).panel.rows[0].strip
+    plus = strip.cell_rect(len(strip.palette.points)).center()
+    assert 'click on an image' in strip.tooltip_at(plus).lower()
+    hover(strip, plus)
+    assert strip.cursor().shape() == Qt.CursorShape.PointingHandCursor
+    hover(strip, strip.cell_rect(0).center())
+    assert strip.cursor().shape() != Qt.CursorShape.PointingHandCursor
+
+
+def hover(widget, pos):
+    # QTest.mouseMove sends no move event on the offscreen platform
+    from PyQt6 import QtCore, QtGui, QtWidgets
+    event = QtGui.QMouseEvent(
+        QtCore.QEvent.Type.MouseMove, QtCore.QPointF(pos),
+        QtCore.QPointF(widget.mapToGlobal(pos)), Qt.MouseButton.NoButton,
+        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
+    QtWidgets.QApplication.sendEvent(widget, event)
+
+
+def test_plus_swatch_adds_beyond_twelve(main_window):
+    palette = extracted(main_window)
+    controller = main_window.view.palette_controller
+    item = palette.points[0].item
+    while len(palette.points) < 13:
+        controller.add_point_at(item.sceneBoundingRect().center())
+    assert len(palette.points) == 13

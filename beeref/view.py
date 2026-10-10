@@ -126,6 +126,7 @@ class BeeGraphicsView(MainControlsMixin,
     def cancel_sample_color_mode(self):
         logger.debug('Cancel sample color mode')
         self.active_mode = None
+        self.refresh_palette_swatches()
         self.viewport().unsetCursor()
         if hasattr(self, 'sample_color_widget'):
             self.sample_color_widget.hide()
@@ -494,6 +495,14 @@ class BeeGraphicsView(MainControlsMixin,
         logger.debug('Entering pick color point mode')
         self.viewport().setCursor(Qt.CursorShape.CrossCursor)
         self.active_mode = self.PICK_POINT_MODE
+        widgets.BeeNotification(
+            self, 'Click on an image to add a color point (Esc cancels)')
+        self.refresh_palette_swatches()
+
+    def refresh_palette_swatches(self):
+        sidebar = getattr(self, 'palette_sidebar', None)
+        if sidebar is not None:
+            sidebar.refresh_swatches()
 
     def on_items_loaded(self, value):
         logger.debug('On items loaded: add queued items')
