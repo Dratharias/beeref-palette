@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 from unittest.mock import patch
 
-
 from beeref.fileio import save_bee
 from beeref.fileio.preview import board_preview, relative_date
 from beeref.items import BeePixmapItem
