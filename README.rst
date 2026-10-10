@@ -31,6 +31,44 @@ color palettes from reference images for painting in Clip Studio Paint.
 - Export ``.aco``; in CSP: Color Set palette > Import color set.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
+Shortcuts added by this fork
+----------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Key / gesture
+     - Action
+   * - ``Space`` + drag
+     - Pan the board (mouse or pen), also while using a tool
+   * - ``P``
+     - Show / hide the palette panel (View > Palette Panel)
+   * - ``Shift+P``
+     - New palette
+   * - ``A``
+     - Add a color point: next click on an image
+   * - ``L``
+     - Lasso region: extract colors from part of an image
+   * - Click / drag (lasso)
+     - Add a vertex / draw freehand
+   * - Click first vertex, double-click or ``Enter`` (lasso)
+     - Close the lasso and extract
+   * - ``Backspace`` (lasso)
+     - Remove the last vertex
+   * - ``Esc`` (lasso, add point)
+     - Cancel the tool
+   * - Click an image (Auto-extract on)
+     - Replace the active palette with that image's colors
+   * - Drag a sample point
+     - Move it; the swatch color follows
+   * - Right-click a point or swatch
+     - Remove it
+   * - Drag a swatch
+     - Reorder the palette
+   * - ``Ctrl+Z`` / ``Ctrl+Shift+Z``
+     - Undo / redo any palette change
+
 .. image:: images/palette-screenshot.png
    :alt: BeeRef Palette with a lasso region on a molten steel reference
          and four palettes in the side panel
