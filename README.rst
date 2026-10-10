@@ -2,7 +2,9 @@ BeeRef Palette
 ==============
 
 A personal fork of `BeeRef <https://github.com/rbreu/beeref>`_ that builds
-color palettes from reference images for painting in Clip Studio Paint.
+color palettes from reference images and exports them as Photoshop ``.aco``
+swatches, for any painting app that reads them (Photoshop, Clip Studio
+Paint, …).
 
 .. warning::
 
@@ -16,9 +18,13 @@ color palettes from reference images for painting in Clip Studio Paint.
    issues with it to the BeeRef project.
 
 - Space navigation: hold ``Space`` and drag with the mouse or pen to pan
-  the board, like in Clip Studio Paint. Works while drawing a lasso or
+  the board, like in Photoshop or Clip Studio Paint. Works while drawing a lasso or
   adding points; the tool resumes when you release.
-- Palette panel (``P``), collapsible with its chevron.
+- Palette panel (``P``), collapsible with its chevron. Hidden on the
+  welcome screen; on a board it reopens if you left it open (off by
+  default).
+- Welcome screen: Open board / Add images, and recent boards as tiles
+  with a preview and their first palette.
 - Menu bar (``M``): the right-click menus at the top of the window.
 - Auto-extract on click: distinct dominant colors (3–12) as draggable
   sample points; Regenerate re-extracts from the source image.
@@ -35,7 +41,9 @@ color palettes from reference images for painting in Clip Studio Paint.
   The default name keeps the names you gave (``Billet`` + ``Palette 2``
   → ``Billet``; ``Billet`` + ``Mood`` → ``Billet + Mood``).
 - Read-only inspector with Copy hex.
-- Export ``.aco``; in CSP: Color Set palette > Import color set.
+- Export ``.aco`` (Photoshop swatches), readable by any app that imports
+  ``.aco``. Photoshop: Swatches panel menu > Import Swatches. Clip Studio
+  Paint: Color Set palette > Import color set.
 - Settings > Folders: where boards and ``.aco`` exports are saved by default.
 
 Shortcuts added by this fork

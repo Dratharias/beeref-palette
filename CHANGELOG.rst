@@ -9,11 +9,15 @@
   respects the image crop, and sample points avoid color edges.
 * Merge with / Export merged .aco: combine palettes into a new palette
   or a single swatch file.
+* Welcome screen redesign: centered card with Open board / Add images
+  and recent boards as preview tiles (with their first palette). The
+  palette panel stays hidden until a board has images, and then follows
+  the user's last choice (off by default).
 * M shows / hides the menu bar (View > Show Menu Bar).
 * Settings > Folders: default folder for boards (Open, Save As) and
   for .aco exports; both default to the Documents folder.
 * Hold Space and drag with the left button (or pen) to pan, like in
-  Clip Studio Paint; pick and sample modes resume after the drag.
+  Photoshop or Clip Studio Paint; pick and sample modes resume after the drag.
 * First start opens the window at 80% of the screen; window size and
   position are now also remembered when quitting with File > Quit.
 

@@ -13,7 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with BeeRef.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Adobe Photoshop swatch (.aco) writer — CSP imports these as color sets."""
+"""Adobe Photoshop swatch (.aco) writer.
+
+Read by Photoshop, Clip Studio Paint (as color sets) and other apps that
+import .aco files.
+"""
 
 import struct
 
