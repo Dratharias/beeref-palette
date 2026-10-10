@@ -402,6 +402,7 @@ actions = ActionList([
     Action(
         id='show_menubar',
         text='Show &Menu Bar',
+        shortcuts=['M'],
         checkable=True,
         settings='View/show_menubar',
         callback='on_action_show_menubar',

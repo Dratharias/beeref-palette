@@ -1787,3 +1787,14 @@ def test_space_pan_in_pick_mode_resumes_pick_mode(
     view.palette_controller.add_point_at.assert_not_called()
     assert view.active_mode == view.PICK_POINT_MODE
     assert view.viewport().cursor().shape() == Qt.CursorShape.CrossCursor
+
+
+def test_show_menubar_toggles_with_m(kbsettings, view):
+    from beeref.actions.actions import actions
+    qaction = actions['show_menubar'].qaction
+    assert qaction.shortcut() == QtGui.QKeySequence('M')
+    qaction.setChecked(False)
+    qaction.trigger()
+    assert view.parent.menuBar().actions() != []
+    qaction.trigger()
+    assert view.parent.menuBar().actions() == []

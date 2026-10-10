@@ -19,6 +19,7 @@ color palettes from reference images for painting in Clip Studio Paint.
   the board, like in Clip Studio Paint. Works while drawing a lasso or
   adding points; the tool resumes when you release.
 - Palette panel (``P``), collapsible with its chevron.
+- Menu bar (``M``): the right-click menus at the top of the window.
 - Auto-extract on click: distinct dominant colors (3–12) as draggable
   sample points; Regenerate re-extracts from the source image.
 - Add points by hand (``A`` or the ``+`` swatch), right-click to remove.
@@ -42,6 +43,9 @@ Shortcuts added by this fork
      - Action
    * - ``Space`` + drag
      - Pan the board (mouse or pen), also while using a tool
+   * - ``M``
+     - Show / hide the menu bar at the top (View > Show Menu Bar); same
+       menus as right-click
    * - ``P``
      - Show / hide the palette panel (View > Palette Panel)
    * - ``Shift+P``

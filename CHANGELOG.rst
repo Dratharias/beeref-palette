@@ -7,6 +7,7 @@
   palette's extraction; saved with the palette (.bee schema v4),
   reused by Regenerate, removed with Clear region. Plain extraction
   respects the image crop, and sample points avoid color edges.
+* M shows / hides the menu bar (View > Show Menu Bar).
 * Settings > Folders: default folder for boards (Open, Save As) and
   for .aco exports; both default to the Documents folder.
 * Hold Space and drag with the left button (or pen) to pan, like in
