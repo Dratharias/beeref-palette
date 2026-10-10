@@ -371,8 +371,10 @@ class PaletteSidebar(QtWidgets.QWidget):
         layout.addWidget(self.panel)
         self.set_collapsed(
             settings.value('PalettePanel/collapsed', False, type=bool))
-        self.setVisible(
-            settings.value('PalettePanel/visible', True, type=bool))
+        # Hidden on the welcome screen; on a board, shown if the user left
+        # it open last time (off by default).
+        self.board_open = False
+        self.apply_visibility()
 
     def is_collapsed(self):
         return self.panel.isHidden()
@@ -384,7 +386,16 @@ class PaletteSidebar(QtWidgets.QWidget):
                                 else 'Hide palettes')
         self.settings.setValue('PalettePanel/collapsed', collapsed)
 
+    def wanted(self):
+        return self.settings.value('PalettePanel/visible', False, type=bool)
+
+    def apply_visibility(self):
+        self.setVisible(self.board_open and self.wanted())
+
+    def set_board_open(self, board_open):
+        self.board_open = board_open
+        self.apply_visibility()
+
     def toggle_visible(self):
-        visible = self.isHidden()
-        self.setVisible(visible)
-        self.settings.setValue('PalettePanel/visible', visible)
+        self.settings.setValue('PalettePanel/visible', not self.wanted())
+        self.apply_visibility()

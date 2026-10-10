@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 
@@ -36,12 +37,56 @@ def test_collapse_persists(main_window, settings):
     assert not side.is_collapsed()
 
 
+def add_item(main_window):
+    item = BeePixmapItem(stripes([RED, GREEN, BLUE]))
+    main_window.view.scene.addItem(item)
+    QtWidgets.QApplication.processEvents()
+    return item
+
+
+def test_sidebar_hidden_on_welcome_screen(main_window, settings):
+    settings.setValue('PalettePanel/visible', True)
+    assert not sidebar(main_window).isVisibleTo(main_window)
+
+
+def test_sidebar_hidden_by_default_on_a_board(main_window, settings):
+    add_item(main_window)
+    assert not sidebar(main_window).isVisibleTo(main_window)
+
+
+def test_sidebar_follows_preference_once_a_board_is_open(
+        settings, qapp, qtbot):
+    from beeref.__main__ import BeeRefMainWindow
+    settings.setValue('PalettePanel/visible', True)
+    window = BeeRefMainWindow(qapp)
+    qtbot.addWidget(window)
+    assert not sidebar(window).isVisibleTo(window)
+    add_item(window)
+    assert sidebar(window).isVisibleTo(window)
+
+
 def test_toggle_action(main_window, settings):
+    item = add_item(main_window)
     side = sidebar(main_window)
-    visible = side.isVisibleTo(main_window)
     main_window.view.on_action_toggle_palette_panel()
-    assert side.isVisibleTo(main_window) is not visible
-    assert settings.value('PalettePanel/visible', type=bool) is not visible
+    assert side.isVisibleTo(main_window)
+    assert settings.value('PalettePanel/visible', type=bool) is True
+    main_window.view.scene.removeItem(item)
+    QtWidgets.QApplication.processEvents()
+    assert not side.isVisibleTo(main_window)
+    assert settings.value('PalettePanel/visible', type=bool) is True
+    main_window.view.scene.addItem(item)
+    QtWidgets.QApplication.processEvents()
+    main_window.view.on_action_toggle_palette_panel()
+    assert not side.isVisibleTo(main_window)
+    assert settings.value('PalettePanel/visible', type=bool) is False
+
+
+def test_toggle_action_disabled_on_welcome_screen(main_window):
+    from beeref.actions.actions import actions
+    assert not actions['toggle_palette_panel'].qaction.isEnabled()
+    add_item(main_window)
+    assert actions['toggle_palette_panel'].qaction.isEnabled()
 
 
 def test_new_palette_button_adds_row(main_window):

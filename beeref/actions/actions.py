@@ -453,6 +453,7 @@ actions = ActionList([
         text='&Palette Panel',
         shortcuts=['P'],
         callback='on_action_toggle_palette_panel',
+        group='active_when_items_in_scene',
     ),
     Action(
         id='palette_new',

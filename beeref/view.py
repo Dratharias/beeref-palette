@@ -163,6 +163,9 @@ class BeeGraphicsView(MainControlsMixin,
             self.welcome_overlay.clearFocus()
             self.welcome_overlay.hide()
             self.actiongroup_set_enabled('active_when_items_in_scene', True)
+        sidebar = getattr(self, 'palette_sidebar', None)
+        if sidebar is not None:
+            sidebar.set_board_open(bool(self.scene.items()))
         self.recalc_scene_rect()
 
     def on_can_redo_changed(self, can_redo):
