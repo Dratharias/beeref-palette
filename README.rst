@@ -41,6 +41,12 @@ Paint, …).
   The default name keeps the names you gave (``Billet`` + ``Palette 2``
   → ``Billet``; ``Billet`` + ``Mood`` → ``Billet + Mood``).
 - Read-only inspector with Copy hex.
+- Color Range (``F``, Images > Color Range): shows the selected images as
+  flat zones of the active palette's colors (nearest color in OKLab), like
+  a filled paint-by-numbers page. The Simplify slider (palette panel, or a
+  bar at the top of the board when the panel is hidden) merges small zones.
+  View only: the image itself, sampling and exports are unchanged; Grayscale
+  applies on top.
 - Export ``.aco`` (Photoshop swatches), readable by any app that imports
   ``.aco``. Photoshop: Swatches panel menu > Import Swatches. Clip Studio
   Paint: Color Set palette > Import color set.
@@ -68,6 +74,8 @@ Shortcuts added by this fork
      - Add a color point: next click on an image
    * - ``L``
      - Lasso region: extract colors from part of an image
+   * - ``F``
+     - Color Range: show selected images in the palette's flat colors
    * - Click / drag (lasso)
      - Add a vertex / draw freehand
    * - Click first vertex, double-click or ``Enter`` (lasso)
