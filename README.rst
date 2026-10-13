@@ -42,11 +42,13 @@ Paint, …).
   → ``Billet``; ``Billet`` + ``Mood`` → ``Billet + Mood``).
 - Read-only inspector with Copy hex.
 - Color Range (``F``, Images > Color Range): shows the selected images as
-  flat zones of the active palette's colors (nearest color in OKLab), like
-  a filled paint-by-numbers page. The Simplify slider (palette panel, or a
-  bar at the top of the board when the panel is hidden) merges small zones.
-  View only: the image itself, sampling and exports are unchanged; Grayscale
-  applies on top.
+  flat zones of a palette's colors (nearest color in OKLab), like a filled
+  paint-by-numbers page. Each image keeps the palette that was active when
+  you turned it on. The Simplify slider (palette panel, or a bar at the top
+  of the board when the panel is hidden) merges small zones. A view only:
+  the image itself, color sampling, image export and SVG export use the
+  original; Export Scene to PNG renders what you see. Grayscale applies on
+  top. Saved with the board.
 - Export ``.aco`` (Photoshop swatches), readable by any app that imports
   ``.aco``. Photoshop: Swatches panel menu > Import Swatches. Clip Studio
   Paint: Color Set palette > Import color set.
