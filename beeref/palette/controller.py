@@ -15,6 +15,7 @@
 
 """User-level palette operations, wired to the undo stack."""
 
+import dataclasses
 import logging
 import os
 import os.path
@@ -22,6 +23,7 @@ import re
 
 from PyQt6 import QtCore
 
+from beeref.commands import SetColorRangeLevel, ToggleColorRange
 from beeref.items import BeeErrorItem
 from beeref.palette import commands
 from beeref.palette.aco import write_aco
@@ -70,6 +72,28 @@ class PaletteController:
 
     def set_auto_extract(self, value):
         self.store.set_auto_extract(value)
+
+    # Color Range
+
+    def toggle_color_range(self, items, checked):
+        palette = self.store.active or (
+            self.store.palettes[0] if self.store.palettes else None)
+        if checked and palette is None:
+            return
+        self.undo_stack.push(
+            ToggleColorRange(self.color_range, items, palette, checked))
+
+    def preview_color_range_level(self, items, level):
+        """Fast low-resolution render while the slider is dragged."""
+        for item in items:
+            if item.color_range is not None:
+                self.color_range.apply(
+                    item, dataclasses.replace(item.color_range, level=level),
+                    preview=True)
+
+    def commit_color_range_level(self, items, old_levels, level):
+        self.undo_stack.push(
+            SetColorRangeLevel(self.color_range, items, old_levels, level))
 
     # Extraction
 

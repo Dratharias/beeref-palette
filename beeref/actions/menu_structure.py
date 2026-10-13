@@ -112,6 +112,7 @@ menu_structure = [
         'items': [
             'change_opacity',
             'grayscale',
+            'color_range',
             MENU_SEPARATOR,
             'show_color_gamut',
             'sample_color',

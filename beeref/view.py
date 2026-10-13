@@ -92,6 +92,10 @@ class BeeGraphicsView(MainControlsMixin,
 
         # Context menu and actions
         self.build_menu_and_actions()
+        self.scene.palettes.changed.connect(self.update_color_range_controls)
+        self.undo_stack.indexChanged.connect(
+            self.update_color_range_controls)
+        self.update_color_range_controls()
         self.control_target = self
         self.init_main_controls(main_window=parent)
 
@@ -373,6 +377,27 @@ class BeeGraphicsView(MainControlsMixin,
         if images:
             self.undo_stack.push(
                 commands.ToggleGrayscale(images, checked))
+
+    def on_action_color_range(self, checked):
+        images = [item for item in self.scene.selectedItems(user_only=True)
+                  if item.is_image]
+        if images:
+            self.palette_controller.toggle_color_range(images, checked)
+        self.update_color_range_controls()
+
+    def selected_images(self):
+        return [item for item in self.scene.selectedItems(user_only=True)
+                if getattr(item, 'is_image', False)]
+
+    def update_color_range_controls(self, *_):
+        images = self.selected_images()
+        action = actions.actions['color_range'].qaction
+        action.setEnabled(bool(images) and bool(self.scene.palettes.palettes))
+        # Checkable actions fire their callback on toggled, so syncing the
+        # checkmark must not go through it.
+        action.blockSignals(True)
+        action.setChecked(bool(images) and images[0].color_range is not None)
+        action.blockSignals(False)
 
     def on_action_crop(self):
         self.scene.crop_items()
@@ -839,6 +864,7 @@ class BeeGraphicsView(MainControlsMixin,
             item = self.scene.selectedItems(user_only=True)[0]
             grayscale = getattr(item, 'grayscale', False)
             actions.actions['grayscale'].qaction.setChecked(grayscale)
+        self.update_color_range_controls()
         self.viewport().repaint()
 
     def on_cursor_changed(self, cursor):

@@ -281,6 +281,13 @@ actions = ActionList([
         group='active_when_selection',
     ),
     Action(
+        id='color_range',
+        text='Colo&r Range',
+        shortcuts=['F'],
+        checkable=True,
+        callback='on_action_color_range',
+    ),
+    Action(
         id='show_color_gamut',
         text='Show &Color Gamut',
         callback='on_action_show_color_gamut',

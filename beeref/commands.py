@@ -13,7 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with BeeRef.  If not, see <https://www.gnu.org/licenses/>.
 
+import dataclasses
+
 from PyQt6 import QtCore, QtGui
+
+from beeref.palette.color_range import DEFAULT_LEVEL, ColorRangeState
 
 
 class InsertItems(QtGui.QUndoCommand):
@@ -365,3 +369,49 @@ class ToggleGrayscale(QtGui.QUndoCommand):
     def undo(self):
         for item, grayscale in zip(self.items, self.old_grayscales):
             item.grayscale = grayscale
+
+
+class ToggleColorRange(QtGui.QUndoCommand):
+    """Turn Color Range on (bound to a palette) or off on images."""
+
+    def __init__(self, renderer, items, palette, checked):
+        super().__init__('Toggle Color Range')
+        self.renderer = renderer
+        self.items = [item for item in items if item.is_image]
+        self.old_states = [item.color_range for item in self.items]
+        self.new_states = [
+            ColorRangeState(palette, old.level if old else DEFAULT_LEVEL)
+            if checked else None
+            for old in self.old_states]
+
+    def redo(self):
+        for item, state in zip(self.items, self.new_states):
+            self.renderer.apply(item, state)
+
+    def undo(self):
+        for item, state in zip(self.items, self.old_states):
+            self.renderer.apply(item, state)
+
+
+class SetColorRangeLevel(QtGui.QUndoCommand):
+    """Change the Simplify level of Color Range images."""
+
+    def __init__(self, renderer, items, old_levels, level):
+        super().__init__('Change Color Range')
+        self.renderer = renderer
+        self.items = list(items)
+        self.old_levels = list(old_levels)
+        self.level = level
+
+    def set_level(self, item, level):
+        if item.color_range is not None:
+            self.renderer.apply(
+                item, dataclasses.replace(item.color_range, level=level))
+
+    def redo(self):
+        for item in self.items:
+            self.set_level(item, self.level)
+
+    def undo(self):
+        for item, level in zip(self.items, self.old_levels):
+            self.set_level(item, level)
