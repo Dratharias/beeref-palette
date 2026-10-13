@@ -101,6 +101,10 @@ Shortcuts added by this fork
    :alt: BeeRef Palette with a lasso region on a molten steel reference
          and four palettes in the side panel
 
+.. image:: images/color-range-screenshot.png
+   :alt: Color Range on a molten steel reference: the image shown as flat
+         zones of the palette's colors, with the Simplify slider at the top
+
 Compatibility: boards are saved as ``.bee`` schema v4. Upstream BeeRef
 opens them and keeps palettes on a normal save, but drops them on Save As.
 
