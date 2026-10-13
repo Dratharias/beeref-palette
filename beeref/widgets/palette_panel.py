@@ -20,6 +20,7 @@ from PyQt6.QtCore import Qt
 
 from beeref import constants
 from beeref.widgets.color_inspector import ColorInspector
+from beeref.widgets.color_range import ColorRangeControls
 
 
 def _highlight():
@@ -304,6 +305,9 @@ class PalettePanel(QtWidgets.QWidget):
         header.addWidget(self.auto_checkbox, 1)
         header.addWidget(self.count_spinbox)
 
+        self.color_range_controls = ColorRangeControls(controller)
+        self.color_range_controls.hide()
+
         self.list_widget = QtWidgets.QWidget()
         self.list_layout = QtWidgets.QVBoxLayout(self.list_widget)
         self.list_layout.setContentsMargins(0, 0, 0, 0)
@@ -316,6 +320,7 @@ class PalettePanel(QtWidgets.QWidget):
 
         self.layout_ = QtWidgets.QVBoxLayout(self)
         self.layout_.addLayout(header)
+        self.layout_.addWidget(self.color_range_controls)
         self.layout_.addWidget(self.new_button)
         self.layout_.addWidget(scroll, 1)
 
@@ -347,6 +352,8 @@ class PalettePanel(QtWidgets.QWidget):
 
 class PaletteSidebar(QtWidgets.QWidget):
     """The palette panel plus a thin chevron strip that collapses it."""
+
+    visibility_changed = QtCore.pyqtSignal()
 
     def refresh_swatches(self):
         for strip in self.findChildren(SwatchStrip):
@@ -385,12 +392,19 @@ class PaletteSidebar(QtWidgets.QWidget):
         self.chevron.setToolTip('Show palettes' if collapsed
                                 else 'Hide palettes')
         self.settings.setValue('PalettePanel/collapsed', collapsed)
+        self.visibility_changed.emit()
+
+    def panel_shown(self):
+        """Whether the expanded panel is on screen (logically)."""
+        return (self.board_open and self.wanted()
+                and not self.is_collapsed())
 
     def wanted(self):
         return self.settings.value('PalettePanel/visible', False, type=bool)
 
     def apply_visibility(self):
         self.setVisible(self.board_open and self.wanted())
+        self.visibility_changed.emit()
 
     def set_board_open(self, board_open):
         self.board_open = board_open

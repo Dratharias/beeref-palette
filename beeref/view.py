@@ -34,6 +34,7 @@ from beeref.main_controls import MainControlsMixin
 from beeref.palette.controller import PaletteController
 from beeref.palette.lasso import Lasso
 from beeref.palette.overlay import PaletteOverlay
+from beeref.widgets.color_range import ColorRangeBar
 from beeref.scene import BeeGraphicsScene
 from beeref.utils import get_file_extension_from_format, qcolor_to_hex
 
@@ -88,6 +89,7 @@ class BeeGraphicsView(MainControlsMixin,
         self.palette_controller = PaletteController(self)
         self.palette_sidebar = None
         self.palette_overlay = PaletteOverlay(self.scene.palettes)
+        self.color_range_bar = ColorRangeBar(self.palette_controller, self)
         self.scene.palettes.changed.connect(self.viewport().update)
 
         # Context menu and actions
@@ -398,6 +400,18 @@ class BeeGraphicsView(MainControlsMixin,
         action.blockSignals(True)
         action.setChecked(bool(images) and images[0].color_range is not None)
         action.blockSignals(False)
+
+        filtered = [item for item in images if item.color_range is not None]
+        sidebar = self.palette_sidebar
+        in_panel = sidebar is not None and sidebar.panel_shown()
+        if sidebar is not None:
+            sidebar.panel.color_range_controls.set_items(filtered)
+            sidebar.panel.color_range_controls.setVisible(
+                bool(filtered) and in_panel)
+        self.color_range_bar.controls.set_items(filtered)
+        self.color_range_bar.setVisible(bool(filtered) and not in_panel)
+        if not self.color_range_bar.isHidden():
+            self.color_range_bar.reposition()
 
     def on_action_crop(self):
         self.scene.crop_items()
@@ -1154,6 +1168,7 @@ class BeeGraphicsView(MainControlsMixin,
         super().resizeEvent(event)
         self.recalc_scene_rect()
         self.welcome_overlay.resize(self.size())
+        self.color_range_bar.reposition()
 
     def keyPressEvent(self, event):
         if self.keyPressEventMainControls(event):

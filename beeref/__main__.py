@@ -62,6 +62,8 @@ class BeeRefMainWindow(QtWidgets.QMainWindow):
         self.palette_sidebar = PaletteSidebar(
             self.view.palette_controller, self.view.settings)
         self.view.palette_sidebar = self.palette_sidebar
+        self.palette_sidebar.visibility_changed.connect(
+            self.view.update_color_range_controls)
         central = QtWidgets.QWidget(self)
         layout = QtWidgets.QHBoxLayout(central)
         layout.setContentsMargins(0, 0, 0, 0)

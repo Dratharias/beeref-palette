@@ -28,6 +28,7 @@ from beeref.widgets import (  # noqa: F401
     color_gamut,
     palette_panel,
     color_inspector,
+    color_range,
 )
 
 
