@@ -24,9 +24,10 @@ lightness-band ("value study") variant.
 
 ### Activation
 
-A checkable action **Images → Color Range** (shortcut `F`, currently free), in the same group as
-**Grayscale**: it applies to the selected image items, is undoable, and is disabled when there
-is no selection or the board has no palette. Non-image items are ignored.
+A checkable action **Images → Color Range** (shortcut `F`, currently free), next to
+**Grayscale**: it applies to the selected image items, is undoable, and is disabled when no image
+is selected or the board has no palette (the view manages its enabled and checked state rather
+than an action group). Non-image items are ignored.
 
 Turning it on binds each selected image to the **palette that is active at that moment**. The
 binding is per image and does not follow later changes of the active palette, so several images
@@ -90,15 +91,16 @@ are restored; an unresolvable position means off.
 ### `beeref/palette/color_range.py` — pure processing (numpy, no Qt widgets)
 
 - `to_oklab(rgb: uint8[h,w,3]) -> float32[h,w,3]` — sRGB → linear → OKLab.
-- `quantize(lab, palette_lab: float32[k,3]) -> uint8[h,w]` — index of the nearest palette color.
-- `simplify(labels, k, radius, mask) -> uint8[h,w]` — majority filter. For each label, count its
+- `quantize(lab, palette_lab: float32[k,3]) -> uint16[h,w]` — index of the nearest palette color.
+- `simplify(labels, k, radius, mask) -> uint16[h,w]` — majority filter. For each label, count its
   pixels in the `(2r+1)²` box with an integral image (cumulative sums), keeping a running best
   count and best label so only one count array lives at a time. Masked-out (transparent) pixels
   do not vote. Two passes. `radius == 0` returns the input.
 - `radius_for(level, long_side) -> int` — `round(level / 100 * 0.03 * long_side)`.
-- `render(image: QImage, colors: list[QColor], level, max_side) -> QImage` — orchestration:
-  downscale to `max_side` on the longer side if larger, convert, quantize, simplify, paint
-  palette colors, restore source alpha, scale back up to the source size without smoothing.
+- `prepare(image: QImage, max_side) -> Prepared` — downscale to `max_side` on the longer side
+  if larger, convert to OKLab, record the opaque mask.
+- `render(prepared, colors: list[QColor], level) -> QImage` — quantize, simplify, paint palette
+  colors, scale back up to the source size without smoothing, restore source alpha.
 
 The OKLab array of an image's working-resolution copy is cached per item, keyed by the pixmap's
 `cacheKey()` and the working size, so moving the slider only re-runs quantize + simplify.
