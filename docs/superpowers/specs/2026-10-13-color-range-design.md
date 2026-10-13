@@ -40,15 +40,15 @@ distance). Then a majority filter removes small zones: each pixel takes the colo
 frequent in a square neighborhood whose radius grows with the slider.
 
 - **Simplify 0**: raw quantization, no filtering.
-- **Simplify 100**: neighborhood radius ≈ 3 % of the image's longer side; only large zones
-  survive.
+- **Simplify 100**: neighborhood radius ≈ 1.26 % of the image's longer side. Tried on a real
+  board, larger radii distort the image more than they simplify it, so the slider stops there.
 
 Transparent pixels keep their alpha and do not vote. The result is fully opaque palette colors
 wherever the source was opaque.
 
 ### The Simplify control
 
-A `ColorRangeControls` widget: a horizontal slider (0–100, default 11, picked by eye on a real board) and the name of the bound
+A `ColorRangeControls` widget: a horizontal slider (0–100, default 26, picked by eye on a real board) and the name of the bound
 palette. It is visible only while at least one selected image has Color Range on.
 
 - **Palette panel visible**: shown as a "Color Range" section right under the panel header.
@@ -96,7 +96,7 @@ are restored; an unresolvable position means off.
   pixels in the `(2r+1)²` box with an integral image (cumulative sums), keeping a running best
   count and best label so only one count array lives at a time. Masked-out (transparent) pixels
   do not vote. Two passes. `radius == 0` returns the input.
-- `radius_for(level, long_side) -> int` — `round(level / 100 * 0.03 * long_side)`.
+- `radius_for(level, long_side) -> int` — `round(level / 100 * 0.0126 * long_side)`.
 - `prepare(image: QImage, max_side) -> Prepared` — downscale to `max_side` on the longer side
   if larger, convert to OKLab, record the opaque mask.
 - `render(prepared, colors: list[QColor], level) -> QImage` — quantize, simplify, paint palette

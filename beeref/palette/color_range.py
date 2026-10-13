@@ -24,11 +24,12 @@ from PyQt6.QtCore import Qt
 from beeref.palette.extract import _rgba_array
 
 
-DEFAULT_LEVEL = 11
+DEFAULT_LEVEL = 26
 FINAL_SIDE = 2048
 PREVIEW_SIDE = 512
-# Neighborhood radius at level 100, as a fraction of the longer side
-MAX_RADIUS = 0.03
+# Neighborhood radius at level 100, as a fraction of the longer side.
+# Larger radii distort the image more than they simplify it.
+MAX_RADIUS = 0.0126
 PASSES = 2
 
 _RGB_TO_LMS = np.array([[0.4122214708, 0.5363325363, 0.0514459929],

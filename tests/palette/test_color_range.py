@@ -66,8 +66,19 @@ def test_simplify_transparent_pixels_do_not_vote():
 
 def test_radius_for():
     assert cr.radius_for(0, 2048) == 0
-    assert cr.radius_for(100, 1000) == 30
-    assert cr.radius_for(50, 2048) == 31
+    assert cr.radius_for(100, 1000) == 13
+    assert cr.radius_for(50, 2048) == 13
+
+
+def test_full_slider_matches_old_level_42():
+    # Above the old 42 (3 % radius scale) zones distort the image, so the
+    # slider's full travel now ends there.
+    assert cr.radius_for(100, 2048) == round(0.42 * 0.03 * 2048)
+
+
+def test_default_matches_old_level_11():
+    assert cr.DEFAULT_LEVEL == 26
+    assert cr.radius_for(cr.DEFAULT_LEVEL, 2048) == round(0.11 * 0.03 * 2048)
 
 
 def test_render_maps_to_palette_colors_and_keeps_size():
