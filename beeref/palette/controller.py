@@ -25,6 +25,8 @@ from PyQt6 import QtCore
 from beeref.items import BeeErrorItem
 from beeref.palette import commands
 from beeref.palette.aco import write_aco
+from beeref.palette.color_range import DEFAULT_LEVEL, ColorRangeState
+from beeref.palette.color_range_renderer import ColorRangeRenderer
 from beeref.palette.extract import extract
 from beeref.palette.model import Palette, SamplePoint, item_image
 
@@ -41,6 +43,7 @@ class PaletteController:
         self.undo_stack = view.undo_stack
         self.settings = view.settings
         self.scene.image_clicked.connect(self.on_image_clicked)
+        self.color_range = ColorRangeRenderer(self.scene)
 
     def color_count(self):
         return self.settings.valueOrDefault('Palette/color_count')
@@ -232,3 +235,18 @@ class PaletteController:
         unloaded = {item.original_save_id
                     for item in self.scene.items_by_type(BeeErrorItem.TYPE)}
         self.store.restore(data, items, unloaded)
+        self.restore_color_ranges(items.values())
+
+    def restore_color_ranges(self, items):
+        """Bind loaded images to their saved palette (by position)."""
+        palettes = self.store.palettes
+        for item in items:
+            pending = item._color_range_pending
+            item._color_range_pending = None
+            if not pending:
+                continue
+            position = pending.get('palette')
+            if isinstance(position, int) and 0 <= position < len(palettes):
+                level = int(pending.get('level', DEFAULT_LEVEL))
+                self.color_range.apply(
+                    item, ColorRangeState(palettes[position], level))
