@@ -74,7 +74,11 @@ class ColorRangeControls(QtWidgets.QFrame):
     def on_released(self):
         start, self.start_levels = self.start_levels, None
         value = self.slider.value()
-        if start is None or all(level == value for level in start):
+        if start is None:
+            return
+        if all(level == value for level in start):
+            # Nothing to undo, but previews may be on screen
+            self.controller.finish_color_range_preview(self.items)
             return
         self.controller.commit_color_range_level(self.items, start, value)
 

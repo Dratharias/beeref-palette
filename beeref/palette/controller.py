@@ -91,6 +91,12 @@ class PaletteController:
                     item, dataclasses.replace(item.color_range, level=level),
                     preview=True)
 
+    def finish_color_range_preview(self, items):
+        """Replace preview renders with full-size ones."""
+        for item in items:
+            if item.color_range is not None:
+                self.color_range.request(item)
+
     def commit_color_range_level(self, items, old_levels, level):
         self.undo_stack.push(
             SetColorRangeLevel(self.color_range, items, old_levels, level))

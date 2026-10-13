@@ -17,7 +17,7 @@
 
 import logging
 
-from PyQt6 import QtCore, QtGui
+from PyQt6 import QtCore, QtGui, sip
 
 from beeref.palette import color_range
 from beeref.palette.model import item_image
@@ -47,6 +47,8 @@ class _Job(QtCore.QRunnable):
         self.level = level
 
     def run(self):
+        if self.generation != self.item._color_range_generation:
+            return  # superseded while queued
         try:
             prepared = (self.prepared
                         or color_range.prepare(self.image, self.side))
@@ -101,9 +103,11 @@ class ColorRangeRenderer(QtCore.QObject):
             self.pool.start(job)
 
     def on_done(self, item, generation, side, cache_entry, result):
+        # The scene may have been cleared while the job ran
+        if sip.isdeleted(item) or item.color_range is None:
+            return
         item._color_range_prepared[side] = cache_entry
-        if (generation != item._color_range_generation
-                or item.color_range is None):
+        if generation != item._color_range_generation:
             return
         item.set_color_range_result(QtGui.QPixmap.fromImage(result))
 

@@ -214,6 +214,7 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
         """Bind a ColorRangeState, or None to turn Color Range off."""
         self.color_range = state
         if state is None:
+            self._color_range_prepared = {}
             self.set_color_range_result(None)
 
     def set_color_range_result(self, pixmap):

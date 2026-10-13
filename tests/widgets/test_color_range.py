@@ -105,3 +105,17 @@ def test_controls_hidden_without_filtered_selection(main_window):
     view.palette_controller.toggle_color_range([item], False)
     assert sidebar.panel.color_range_controls.isHidden()
     assert view.color_range_bar.isHidden()
+
+
+def test_drag_back_to_start_ends_with_full_size_render(view):
+    from unittest.mock import call, patch
+    item = board(view)
+    controls = controls_for(view, item)
+    renderer = view.palette_controller.color_range
+    with patch.object(renderer, 'request',
+                      wraps=renderer.request) as request:
+        controls.slider.setSliderDown(True)
+        controls.slider.setValue(60)
+        controls.slider.setValue(30)
+        controls.slider.setSliderDown(False)
+    assert request.call_args_list[-1] == call(item)

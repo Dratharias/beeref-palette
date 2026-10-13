@@ -170,3 +170,39 @@ def test_unresolvable_palette_position_means_off(view):
     view.palette_controller.restore_color_ranges([item])
     assert item.color_range is None
     assert item._color_range_pending is None
+
+
+def test_result_for_deleted_item_is_ignored(view):
+    renderer, item, palette = setup(view)
+    renderer.apply(item, ColorRangeState(palette, 0))
+    generation = item._color_range_generation
+    entry = item._color_range_prepared[color_range.FINAL_SIDE]
+    late = QtGui.QImage(item.pixmap().size(),
+                        QtGui.QImage.Format.Format_RGBA8888)
+    view.clear_scene()
+    renderer.on_done(item, generation, color_range.FINAL_SIDE, entry, late)
+
+
+def test_stale_job_skips_rendering(view):
+    renderer, item, palette = setup(view)
+    renderer.synchronous = False
+    with patch.object(renderer.pool, 'start') as start:
+        renderer.apply(item, ColorRangeState(palette, 10))
+        renderer.apply(item, ColorRangeState(palette, 20))
+    stale_job = start.call_args_list[0].args[0]
+    with patch('beeref.palette.color_range.render') as render:
+        stale_job.run()
+    render.assert_not_called()
+
+
+def test_turning_off_frees_working_copies(view):
+    renderer, item, palette = setup(view)
+    renderer.apply(item, ColorRangeState(palette, 0))
+    entry = item._color_range_prepared[color_range.FINAL_SIDE]
+    generation = item._color_range_generation
+    renderer.apply(item, None)
+    assert item._color_range_prepared == {}
+    late = QtGui.QImage(item.pixmap().size(),
+                        QtGui.QImage.Format.Format_RGBA8888)
+    renderer.on_done(item, generation, color_range.FINAL_SIDE, entry, late)
+    assert item._color_range_prepared == {}
