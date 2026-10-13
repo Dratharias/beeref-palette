@@ -48,7 +48,7 @@ wherever the source was opaque.
 
 ### The Simplify control
 
-A `ColorRangeControls` widget: a horizontal slider (0–100, default 30) and the name of the bound
+A `ColorRangeControls` widget: a horizontal slider (0–100, default 11, picked by eye on a real board) and the name of the bound
 palette. It is visible only while at least one selected image has Color Range on.
 
 - **Palette panel visible**: shown as a "Color Range" section right under the panel header.

@@ -20,7 +20,7 @@ checkable action and a slider widget (in the palette panel or a floating bar) dr
 - No new dependencies: numpy and PyQt6 only (no scipy).
 - All code, comments and docs in English.
 - Working resolution: **2048 px** longer side for final renders, **512 px** while dragging.
-- Simplify range 0–100, default **30**; radius = `round(level / 100 * 0.03 * long_side)`.
+- Simplify range 0–100, default **11**; radius = `round(level / 100 * 0.03 * long_side)`.
 - Color distance: Euclidean in **OKLab**.
 - `BeePixmapItem.pixmap()` must always stay the original image; palette sampling, auto-extract,
   lasso, Sample Color (`S`) and SVG export never see Color Range output.
@@ -58,7 +58,7 @@ checkable action and a slider widget (in the palette panel or a floating bar) dr
 **Interfaces:**
 - Consumes: `beeref.palette.extract._rgba_array(image: QImage) -> uint8[h,w,4]` (existing).
 - Produces (module `beeref.palette.color_range`):
-  - constants `DEFAULT_LEVEL = 30`, `FINAL_SIDE = 2048`, `PREVIEW_SIDE = 512`
+  - constants `DEFAULT_LEVEL = 11`, `FINAL_SIDE = 2048`, `PREVIEW_SIDE = 512`
   - `@dataclass(frozen=True) ColorRangeState(palette, level: int = DEFAULT_LEVEL)`
   - `@dataclass Prepared(source: QImage, lab: float32[h,w,3], mask: bool[h,w])`
   - `to_oklab(rgb: uint8[...,3]) -> float32[...,3]`
@@ -222,7 +222,7 @@ from PyQt6.QtCore import Qt
 from beeref.palette.extract import _rgba_array
 
 
-DEFAULT_LEVEL = 30
+DEFAULT_LEVEL = 11
 FINAL_SIDE = 2048
 PREVIEW_SIDE = 512
 # Neighborhood radius at level 100, as a fraction of the longer side

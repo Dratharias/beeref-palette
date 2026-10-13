@@ -24,7 +24,7 @@ from PyQt6.QtCore import Qt
 from beeref.palette.extract import _rgba_array
 
 
-DEFAULT_LEVEL = 30
+DEFAULT_LEVEL = 11
 FINAL_SIDE = 2048
 PREVIEW_SIDE = 512
 # Neighborhood radius at level 100, as a fraction of the longer side
